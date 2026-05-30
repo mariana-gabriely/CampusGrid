@@ -1,10 +1,10 @@
 package com.estagio.demo.controllers;
 
-import com.estagio.demo.domain.user.User;
+import com.estagio.demo.domain.user.Usuario;
 import com.estagio.demo.dto.auth.AuthenticationDTO;
 import com.estagio.demo.dto.auth.LoginResponseDTO;
-import com.estagio.demo.dto.user.UserRequestDTO;
-import com.estagio.demo.repositories.UserRepository;
+import com.estagio.demo.dto.user.UsuarioRequestDTO;
+import com.estagio.demo.repositories.UsuarioRepository;
 import com.estagio.demo.services.TokenService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
-    private UserRepository repository;
+    private UsuarioRepository repository;
     @Autowired
     private TokenService tokenService;
     @Autowired
@@ -31,21 +31,21 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody @Valid AuthenticationDTO data) {
-        var usernamePassword = new UsernamePasswordAuthenticationToken(data.email(), data.password());
+        var usernamePassword = new UsernamePasswordAuthenticationToken(data.email(), data.senha());
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
-        var user = (User) auth.getPrincipal();
+        var user = (Usuario) auth.getPrincipal();
         var token = tokenService.generateToken(user);
 
-        return ResponseEntity.ok(new LoginResponseDTO(token, user.getName(), user.getEmail(), user.getRole()));
+        return ResponseEntity.ok(new LoginResponseDTO(token, user.getNome(), user.getEmail(), user.getPerfil()));
     }
 
     @PostMapping("/register")
-    public ResponseEntity register(@RequestBody @Valid UserRequestDTO data) {
+    public ResponseEntity register(@RequestBody @Valid UsuarioRequestDTO data) {
         if (this.repository.findByEmail(data.email()) != null) return ResponseEntity.badRequest().build();
 
-        String encryptedPassword = passwordEncoder.encode(data.password());
-        User newUser = new User(data.name(), data.email(), encryptedPassword, data.role());
+        String encryptedPassword = passwordEncoder.encode(data.senha());
+        Usuario newUser = new Usuario(data.nome(), data.email(), encryptedPassword, data.perfil());
 
         this.repository.save(newUser);
 
