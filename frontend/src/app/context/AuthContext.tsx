@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { User } from "../types";
+import { Usuario } from "../types";
 import { apiFetch } from "../lib/api";
 
 interface AuthContextType {
-  user: User | null;
+  user: Usuario | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -13,7 +13,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Usuario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -27,17 +27,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string): Promise<void> => {
     const data = await apiFetch("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, senha: password }),
     });
 
     if (data.token) {
       localStorage.setItem("campusgrid_token", data.token);
       
-      const realUser: User = {
-        id: "id-from-token", // No futuro podemos pegar do JWT se necessário
-        name: data.name,
+      const realUser: Usuario = {
+        id: "id-from-token",
+        nome: data.nome,
         email: data.email,
-        role: data.role.toLowerCase() // Normaliza para bater com o menu lateral
+        perfil: data.perfil,
+        ativo: true
       };
 
       setUser(realUser);

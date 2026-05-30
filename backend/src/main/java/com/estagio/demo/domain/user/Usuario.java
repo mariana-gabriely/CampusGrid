@@ -9,38 +9,42 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-@Table(name = "users")
-@Entity(name = "users")
+@Table(name = "usuarios")
+@Entity(name = "Usuario")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(of = "id")
-public class User implements UserDetails {
+@EqualsAndHashCode(of = "idUsuario")
+public class Usuario implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @Column(name = "id_usuario")
+    private String idUsuario;
 
-    private String name;
+    private String nome;
 
     @Column(unique = true)
     private String email;
 
-    private String password;
+    private String senha;
 
     @Enumerated(EnumType.STRING)
-    private UserRole role;
+    private UserRole perfil;
 
-    public User(String name, String email, String password, UserRole role) {
-        this.name = name;
+    private boolean ativo;
+
+    public Usuario(String nome, String email, String senha, UserRole perfil) {
+        this.nome = nome;
         this.email = email;
-        this.password = password;
-        this.role = role;
+        this.senha = senha;
+        this.perfil = perfil;
+        this.ativo = true;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if (this.role == UserRole.APROVADOR) {
+        if (this.perfil == UserRole.APROVADOR) {
             return List.of(new SimpleGrantedAuthority("ROLE_APROVADOR"), new SimpleGrantedAuthority("ROLE_SOLICITANTE"));
         } else {
             return List.of(new SimpleGrantedAuthority("ROLE_SOLICITANTE"));
@@ -48,8 +52,17 @@ public class User implements UserDetails {
     }
 
     @Override
+    public String getPassword() {
+        return senha;
+    }
+
+    @Override
     public String getUsername() {
         return email;
+    }
+
+    public String getId() {
+        return idUsuario;
     }
 
     @Override
@@ -69,6 +82,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return ativo;
     }
 }

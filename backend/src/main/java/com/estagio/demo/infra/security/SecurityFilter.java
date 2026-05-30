@@ -1,6 +1,6 @@
 package com.estagio.demo.infra.security;
 
-import com.estagio.demo.repositories.UserRepository;
+import com.estagio.demo.repositories.UsuarioRepository;
 import com.estagio.demo.services.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,7 +20,7 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Autowired
     TokenService tokenService;
     @Autowired
-    UserRepository userRepository;
+    UsuarioRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {

@@ -55,18 +55,18 @@ export function Layout({ children }: LayoutProps) {
   }
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", roles: ["solicitante", "aprovador"] },
-    { icon: FileText, label: "Nova Solicitação", path: "/new-request", roles: ["solicitante"] },
-    { icon: ClipboardList, label: "Minhas Reservas", path: "/my-requests", roles: ["solicitante"] },
-    { icon: CheckSquare, label: "Painel de Aprovação", path: "/approval-panel", roles: ["aprovador"] },
-    { icon: History, label: "Auditoria", path: "/audit-log", roles: ["aprovador"] },
-    { icon: Users, label: "Usuários", path: "/users", roles: ["aprovador"] },
-    { icon: Building2, label: "Ambientes", path: "/environments", roles: ["aprovador"] },
-    { icon: FileBarChart, label: "Relatórios", path: "/reports", roles: ["aprovador"] },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", roles: ["SOLICITANTE", "APROVADOR"] },
+    { icon: FileText, label: "Nova Solicitação", path: "/new-request", roles: ["SOLICITANTE"] },
+    { icon: ClipboardList, label: "Minhas Reservas", path: "/my-requests", roles: ["SOLICITANTE"] },
+    { icon: CheckSquare, label: "Painel de Aprovação", path: "/approval-panel", roles: ["APROVADOR"] },
+    { icon: History, label: "Auditoria", path: "/audit-log", roles: ["APROVADOR"] },
+    { icon: Users, label: "Usuários", path: "/users", roles: ["APROVADOR"] },
+    { icon: Building2, label: "Ambientes", path: "/environments", roles: ["APROVADOR"] },
+    { icon: FileBarChart, label: "Relatórios", path: "/reports", roles: ["APROVADOR"] },
   ];
 
   const filteredMenuItems = menuItems.filter(item => 
-    item.roles.includes(user.role.toLowerCase())
+    item.roles.includes(user.perfil)
   );
 
   const handleLogout = () => {
@@ -147,8 +147,8 @@ export function Layout({ children }: LayoutProps) {
                         <DropdownMenuTrigger asChild>
                             <button className="flex items-center gap-2 p-1 pl-2 pr-1 rounded border border-slate-200 hover:bg-slate-50 transition-colors outline-none">
                                 <div className="text-right hidden sm:block">
-                                    <p className="text-xs font-bold text-slate-900 leading-none">{user.name}</p>
-                                    <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">{user.role}</p>
+                                    <p className="text-xs font-bold text-slate-900 leading-none">{user.nome}</p>
+                                    <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">{user.perfil}</p>
                                 </div>
                                 <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500">
                                     <UserIcon className="w-4 h-4" />
@@ -158,7 +158,7 @@ export function Layout({ children }: LayoutProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56 rounded border-slate-200 shadow-lg">
                             <DropdownMenuLabel className="px-4 py-3">
-                                <p className="text-sm font-bold text-slate-900">{user.name}</p>
+                                <p className="text-sm font-bold text-slate-900">{user.nome}</p>
                                 <p className="text-xs text-slate-500">{user.email}</p>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />

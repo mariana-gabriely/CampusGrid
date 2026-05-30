@@ -38,18 +38,26 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api-docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
                         
                         // controle de acesso para usuários
                         .requestMatchers(HttpMethod.POST, "/users").hasRole("APROVADOR")
                         .requestMatchers(HttpMethod.GET, "/users").hasRole("APROVADOR")
                         .requestMatchers(HttpMethod.PUT, "/users/**").hasRole("APROVADOR")
                         .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("APROVADOR")
+
+                        // controle de acesso para ambientes
+                        .requestMatchers(HttpMethod.GET, "/environments").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.POST, "/environments").hasRole("APROVADOR")
+                        .requestMatchers(HttpMethod.PUT, "/environments/**").hasRole("APROVADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/environments/**").hasRole("APROVADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/environments/**").hasRole("APROVADOR")
+
+                        // controle de acesso para recursos
+                        .requestMatchers(HttpMethod.GET, "/resources").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.POST, "/resources").hasRole("APROVADOR")
                         
                         .anyRequest().authenticated()
                 )
-                // necessário para o console do h2
-                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -58,7 +66,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);
         

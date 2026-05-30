@@ -5,9 +5,9 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public record UserRequestDTO(
-    @NotBlank String name,
+public record UsuarioRequestDTO(
+    @NotBlank String nome,
     @NotBlank @Email String email,
-    @NotBlank String password,
-    @NotNull UserRole role
+    @NotBlank String senha,
+    @NotNull UserRole perfil
 ) {}

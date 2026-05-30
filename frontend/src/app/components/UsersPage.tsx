@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Layout } from "./Layout";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { User } from "../types";
+import { Usuario } from "../types";
 import { Mail, Plus, Edit2, Trash2, UserPlus, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -10,20 +10,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "sonner";
-import { apiFetch } from "../lib/api";
+import { userApi } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
 export function UsersPage() {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [name, setName] = useState("");
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
+  const [senha, setSenha] = useState("");
+  const [perfil, setPerfil] = useState("");
 
   // identifica se o usuário no modal é o próprio admin logado
   const isEditingSelf = editingUserId && users.find(u => u.id === editingUserId)?.email === currentUser?.email;
@@ -31,7 +31,7 @@ export function UsersPage() {
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const data = await apiFetch("/users");
+      const data = await userApi.listarTodos();
       setUsers(data);
     } catch (error) {
       toast.error("erro ao carregar usuários");
@@ -44,19 +44,19 @@ export function UsersPage() {
     fetchUsers();
   }, []);
 
-  const handleOpenModal = (user?: User) => {
+  const handleOpenModal = (user?: Usuario) => {
     if (user) {
       setEditingUserId(user.id);
-      setName(user.name);
+      setNome(user.nome);
       setEmail(user.email);
-      setRole(user.role.toLowerCase());
-      setPassword("");
+      setPerfil(user.perfil);
+      setSenha("");
     } else {
       setEditingUserId(null);
-      setName("");
+      setNome("");
       setEmail("");
-      setRole("");
-      setPassword("");
+      setPerfil("");
+      setSenha("");
     }
     setIsModalOpen(true);
   };
@@ -64,30 +64,24 @@ export function UsersPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !email || !role || (!editingUserId && !password)) {
+    if (!nome || !email || !perfil || (!editingUserId && !senha)) {
       toast.error("preencha os campos obrigatórios");
       return;
     }
 
     try {
       const body = { 
-        name, 
+        nome, 
         email, 
-        role: role.toUpperCase(),
-        ...(password ? { password } : {})
+        perfil: perfil,
+        ...(senha ? { senha } : {})
       };
 
       if (editingUserId) {
-        await apiFetch(`/users/${editingUserId}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        });
+        await userApi.atualizarDados(editingUserId, body);
         toast.success("usuário atualizado");
       } else {
-        await apiFetch("/users", {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
+        await userApi.registrarFuncionario(body);
         toast.success("usuário cadastrado");
       }
 
@@ -107,7 +101,7 @@ export function UsersPage() {
     if (!confirm("deseja realmente excluir este usuário?")) return;
 
     try {
-      await apiFetch(`/users/${id}`, { method: "DELETE" });
+      await userApi.revogarAcesso(id);
       toast.success("usuário excluído");
       fetchUsers();
     } catch (error) {
@@ -143,7 +137,7 @@ export function UsersPage() {
             <form onSubmit={handleSave} className="space-y-5 py-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-slate-400">Nome Completo</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-11 rounded-xl" />
+                <Input value={nome} onChange={(e) => setNome(e.target.value)} className="h-11 rounded-xl" />
               </div>
 
               <div className="space-y-2">
@@ -155,20 +149,20 @@ export function UsersPage() {
                 <Label className="text-xs font-bold uppercase text-slate-400">
                     {editingUserId ? "Nova Senha (deixe em branco para manter)" : "Senha Inicial"}
                 </Label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl" />
+                <Input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} className="h-11 rounded-xl" />
               </div>
 
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-slate-400">
                     Perfil {isEditingSelf && <span className="text-[10px] lowercase text-amber-600">(não é possível alterar seu próprio nível de acesso)</span>}
                 </Label>
-                <Select value={role} onValueChange={setRole} disabled={!!isEditingSelf}>
+                <Select value={perfil} onValueChange={setPerfil} disabled={!!isEditingSelf}>
                   <SelectTrigger className="h-11 rounded-xl">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="solicitante">Solicitante</SelectItem>
-                    <SelectItem value="aprovador">Aprovador</SelectItem>
+                    <SelectItem value="SOLICITANTE">Solicitante</SelectItem>
+                    <SelectItem value="APROVADOR">Aprovador</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -193,12 +187,12 @@ export function UsersPage() {
                     <CardContent className="p-6">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary font-black text-xl">
-                                {u.name.charAt(0)}
+                                {u.nome.charAt(0)}
                             </div>
                             <div>
-                                <h3 className="font-bold text-slate-900 text-lg leading-tight">{u.name}</h3>
+                                <h3 className="font-bold text-slate-900 text-lg leading-tight">{u.nome}</h3>
                                 <Badge variant="secondary" className="mt-1 uppercase text-[10px]">
-                                    {u.role}
+                                    {u.perfil}
                                 </Badge>
                             </div>
                         </div>
