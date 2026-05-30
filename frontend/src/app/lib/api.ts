@@ -12,9 +12,6 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
 
   if (response.status === 401 || response.status === 403) {
-    // Se o token expirar ou não houver permissão
-    // localStorage.removeItem("campusgrid_token");
-    // window.location.href = "/";
   }
 
   if (!response.ok) {
@@ -25,3 +22,19 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   if (response.status === 204) return null;
   return response.json();
 }
+
+export const environmentApi = {
+  listarTodos: (apenasAtivos: boolean = true) => apiFetch(`/environments?apenasAtivos=${apenasAtivos}`),
+  cadastrarEspaco: (data: any) => apiFetch("/environments", { method: "POST", body: JSON.stringify(data) }),
+  atualizarFichaTecnica: (id: string, data: any) => apiFetch(`/environments/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  removerEspaco: (id: string) => apiFetch(`/environments/${id}`, { method: "DELETE" }),
+  ativarEspaco: (id: string) => apiFetch(`/environments/${id}/ativar`, { method: "PATCH" }),
+  apagarFichaTecnica: (id: string) => apiFetch(`/environments/${id}/ficha`, { method: "DELETE" }),
+};
+
+export const userApi = {
+  listarTodos: () => apiFetch("/users"),
+  registrarFuncionario: (data: any) => apiFetch("/users", { method: "POST", body: JSON.stringify(data) }),
+  atualizarDados: (id: string, data: any) => apiFetch(`/users/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  revogarAcesso: (id: string) => apiFetch(`/users/${id}`, { method: "DELETE" }),
+};

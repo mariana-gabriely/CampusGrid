@@ -1,22 +1,44 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Layout } from "./Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { mockRequests, mockEnvironments } from "../data/mockData";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock, Plus, FileDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Plus, FileDown, Loader2 } from "lucide-react";
 import { cn } from "./ui/utils";
 import { ScrollArea } from "./ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
+import { environmentApi } from "../lib/api";
+import { Environment } from "../types";
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedEnvId, setSelectedEnvId] = useState<string>(mockEnvironments[0]?.id || "");
+  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [selectedEnvId, setSelectedEnvId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  // Mock de reservas para o exemplo (no futuro virá da API)
+  const mockRequests: any[] = []; 
+
+  useEffect(() => {
+    loadEnvironments();
+  }, []);
+
+  async function loadEnvironments() {
+    try {
+      const data = await environmentApi.listarDisponiveis();
+      setEnvironments(data);
+      if (data.length > 0) setSelectedEnvId(data[0].id);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -69,7 +91,7 @@ export function DashboardPage() {
                 </Button>
             </div>
 
-            {user?.role === "solicitante" ? (
+            {user?.perfil === "SOLICITANTE" ? (
               <Button onClick={() => navigate("/new-request")} className="rounded-md h-9 px-4 font-bold text-xs uppercase">
                   <Plus className="w-3.5 h-3.5 mr-2" /> Nova Reserva
               </Button>
@@ -90,7 +112,9 @@ export function DashboardPage() {
               <CardContent className="p-1">
                 <ScrollArea className="h-[500px]">
                     <div className="space-y-0.5">
-                        {mockEnvironments.map(env => (
+                        {loading ? (
+                            <div className="p-4 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+                        ) : environments.map(env => (
                         <button
                             key={env.id}
                             onClick={() => setSelectedEnvId(env.id)}
@@ -102,10 +126,10 @@ export function DashboardPage() {
                             )}
                         >
                             <div>
-                                <p className="text-sm">{env.name}</p>
-                                <p className="text-[10px] opacity-70">capacidade: {env.capacity}</p>
+                                <p className="text-sm">{env.nome}</p>
+                                <p className="text-[10px] opacity-70">capacidade: {env.capacidade}</p>
                             </div>
-                            {env.exclusiveCourse && <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+                            {env.exclusivoCurso && <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
                         </button>
                         ))}
                     </div>

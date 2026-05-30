@@ -1,29 +1,29 @@
-export type UserRole = "solicitante" | "aprovador";
+export type UserRole = "SOLICITANTE" | "APROVADOR";
 
-export interface User {
-  id: string;
-  name: string;
+export interface Usuario {
+  idUsuario: string;
+  nome: string;
   email: string;
-  role: UserRole;
+  perfil: UserRole;
+  ativo: boolean;
 }
 
 export type RequestStatus = "pendente" | "aprovado" | "recusado";
 export type EnvironmentStatus = "livre" | "pendente" | "ocupado" | "bloqueado";
 
-export interface Environment {
-  id: string;
-  name: string;
-  type: "teorica" | "multimidia" | "laboratorio";
-  capacity: number;
-  hasProjector: boolean;
-  hasTV: boolean;
-  hasMicrophone: boolean;
-  hasAC: boolean;
-  hasControlledAccess: boolean;
-  exclusiveCourse?: string;
+export interface Ambiente {
+  idAmbiente: string;
+  nomeSala: string;
+  categoria: string;
+  capacidade: number;
+  exclusivoCurso?: string;
+  observacoes?: string;
+  recursos: string[]; // Agora é uma lista simples de strings
+  status: boolean;
+  ativo: boolean;
 }
 
-export interface Request {
+export interface Reserva {
   id: string;
   environmentId: string;
   environmentName: string;
@@ -42,14 +42,4 @@ export interface Request {
   approvalDate?: Date;
   rejectionReason?: string;
   createdAt: Date;
-}
-
-export interface AuditLog {
-  id: string;
-  action: string;
-  userId: string;
-  userName: string;
-  requestId: string;
-  timestamp: Date;
-  details: string;
 }
