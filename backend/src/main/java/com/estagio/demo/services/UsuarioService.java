@@ -35,12 +35,19 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
-    public List<UsuarioResponseDTO> listarTodos() {
+    public List<UsuarioResponseDTO> listarTodos(boolean apenasAtivos) {
+        if (apenasAtivos) {
+            return this.repository.findAll().stream()
+                    .filter(Usuario::isAtivo)
+                    .map(UsuarioResponseDTO::new)
+                    .collect(Collectors.toList());
+        }
         return this.repository.findAll().stream()
-                .filter(Usuario::isAtivo)
                 .map(UsuarioResponseDTO::new)
                 .collect(Collectors.toList());
     }
+
+
 
     @Transactional
     public UsuarioResponseDTO atualizarDados(String id, UsuarioUpdateDTO data) {

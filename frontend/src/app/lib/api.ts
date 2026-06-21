@@ -33,7 +33,7 @@ export const environmentApi = {
 };
 
 export const userApi = {
-  listarTodos: () => apiFetch("/users"),
+  listarTodos: (apenasAtivos: boolean = true) => apiFetch(`/users?apenasAtivos=${apenasAtivos}`),
   registrarFuncionario: (data: any) => apiFetch("/users", { method: "POST", body: JSON.stringify(data) }),
   atualizarDados: (id: string, data: any) => apiFetch(`/users/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   revogarAcesso: (id: string) => apiFetch(`/users/${id}`, { method: "DELETE" }),

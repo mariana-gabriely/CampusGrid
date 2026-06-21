@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem("campusgrid_token", data.token);
       
       const realUser: Usuario = {
-        id: "id-from-token",
+        idUsuario: "id-from-token",
         nome: data.nome,
         email: data.email,
         perfil: data.perfil,

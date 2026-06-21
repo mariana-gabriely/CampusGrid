@@ -24,10 +24,12 @@ public class UsuarioController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UsuarioResponseDTO>> listarTodos() {
-        List<UsuarioResponseDTO> users = this.service.listarTodos();
+    public ResponseEntity<List<UsuarioResponseDTO>> listarTodos(@RequestParam(required = false, defaultValue = "true") boolean apenasAtivos) {
+        List<UsuarioResponseDTO> users = this.service.listarTodos(apenasAtivos);
         return ResponseEntity.ok(users);
     }
+
+
 
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioResponseDTO> atualizarDados(@PathVariable String id, @RequestBody @Valid UsuarioUpdateDTO data) {

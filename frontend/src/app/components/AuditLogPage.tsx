@@ -21,7 +21,7 @@ export function AuditLogPage() {
         <div className="flex items-center justify-between">
             <div>
                 <h1 className="text-2xl font-bold text-slate-900">Trilha de Auditoria</h1>
-                <p className="text-sm text-slate-500">Histórico técnico de operações realizadas no banco de dados.</p>
+                <p className="text-sm text-slate-500">Histórico técnico de operações realizadas no no sistema.</p>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-md font-bold text-[10px] uppercase border border-slate-200">
                 <ShieldCheck className="w-3.5 h-3.5" />

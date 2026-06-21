@@ -11,13 +11,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { environmentApi } from "../lib/api";
-import { Environment } from "../types";
+import { Ambiente } from "../types";
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [environments, setEnvironments] = useState<Ambiente[]>([]);
   const [selectedEnvId, setSelectedEnvId] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
@@ -30,9 +30,9 @@ export function DashboardPage() {
 
   async function loadEnvironments() {
     try {
-      const data = await environmentApi.listarDisponiveis();
+      const data = await environmentApi.listarTodos();
       setEnvironments(data);
-      if (data.length > 0) setSelectedEnvId(data[0].id);
+      if (data.length > 0) setSelectedEnvId(data[0].idAmbiente);
     } catch (error) {
       console.error(error);
     } finally {
@@ -76,7 +76,7 @@ export function DashboardPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Mapa de Ocupação</h1>
-            <p className="text-sm text-slate-500">monitoramento de ambientes em tempo real</p>
+            <p className="text-sm text-slate-500">Monitoramento de ambientes em tempo real</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex border border-slate-200 rounded-md overflow-hidden bg-white">
@@ -116,17 +116,17 @@ export function DashboardPage() {
                             <div className="p-4 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
                         ) : environments.map(env => (
                         <button
-                            key={env.id}
-                            onClick={() => setSelectedEnvId(env.id)}
+                            key={env.idAmbiente}
+                            onClick={() => setSelectedEnvId(env.idAmbiente)}
                             className={cn(
                                 "w-full flex items-center justify-between p-3 transition-colors text-left",
-                                selectedEnvId === env.id 
+                                selectedEnvId === env.idAmbiente 
                                 ? "bg-orange-50 text-orange-700 border-l-4 border-l-primary font-bold" 
                                 : "hover:bg-slate-50 text-slate-600 border-l-4 border-l-transparent"
                             )}
                         >
                             <div>
-                                <p className="text-sm">{env.nome}</p>
+                                <p className="text-sm">{env.nomeSala}</p>
                                 <p className="text-[10px] opacity-70">capacidade: {env.capacidade}</p>
                             </div>
                             {env.exclusivoCurso && <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />}

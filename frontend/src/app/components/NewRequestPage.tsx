@@ -35,7 +35,9 @@ export function NewRequestPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Nova Solicitação</h1>
-          <p className="text-sm text-slate-500">Formulário oficial de reserva de ambientes.</p>
+          <p className="text-sm text-slate-500">
+            Formulário oficial de reserva de ambientes. <span className="text-xs text-red-500 font-bold ml-2">* Campos obrigatórios</span>
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -43,7 +45,9 @@ export function NewRequestPage() {
             <Card className="rounded-md border-slate-200 shadow-sm">
               <CardContent className="p-6 space-y-6">
                 <div className="space-y-4">
-                  <Label className="text-xs font-bold uppercase text-slate-500">1. Seleção de Ambiente</Label>
+                  <Label className="text-xs font-bold uppercase text-slate-500">
+                    1. Seleção de Ambiente <span className="text-red-500">*</span>
+                  </Label>
                   <Select value={environmentId} onValueChange={setEnvironmentId}>
                     <SelectTrigger className="h-11 rounded-md border-slate-200 bg-white">
                       <SelectValue placeholder="Selecione o local..." />
@@ -59,14 +63,16 @@ export function NewRequestPage() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <Label className="text-xs font-bold uppercase text-slate-500">2. Cronograma (Início e Fim)</Label>
+                  <Label className="text-xs font-bold uppercase text-slate-500">
+                    2. Cronograma (Início e Fim) <span className="text-red-500">*</span>
+                  </Label>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase"><Calendar className="w-3 h-3" /> Data</p>
+                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase"><Calendar className="w-3 h-3" /> Data <span className="text-red-500">*</span></p>
                         <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-10 rounded-md border-slate-200" required />
                     </div>
                     <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase"><Clock className="w-3 h-3" /> Hora</p>
+                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase"><Clock className="w-3 h-3" /> Hora <span className="text-red-500">*</span></p>
                         <div className="flex items-center gap-2">
                             <Input type="time" placeholder="De" value={startTime} onChange={e => setStartTime(e.target.value)} className="h-10 rounded-md border-slate-200" required />
                             <span className="text-slate-300">/</span>

@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
@@ -11,12 +11,10 @@ import {
   Building2,
   FileBarChart,
   LogOut,
-  GraduationCap,
   Users,
   User as UserIcon,
   ChevronDown,
   Bell,
-  Map,
 } from "lucide-react";
 import { cn } from "./ui/utils";
 import {
@@ -44,10 +42,11 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+import logoUnifil from "../../public/logo - unifil.png";
+
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [selectedCampus, setSelectedCampus] = useState("Campus Central");
 
   if (!user) {
     navigate("/");
@@ -75,28 +74,14 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <SidebarProvider defaultOpen={true} collapsible="icon">
+    <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen bg-white w-full">
-        <Sidebar className="z-30 border-r border-slate-200 shadow-none">
-          <SidebarHeader className="h-16 flex items-center px-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-lg text-slate-900 group-data-[state=collapsed]:hidden">CampusGrid</span>
-            </div>
+        <Sidebar collapsible="icon" className="z-30 border-r border-slate-200 shadow-none">
+          <SidebarHeader className="h-16 flex items-center justify-center px-4">
+            <img src={logoUnifil} alt="UniFil Logo" className="h-8 object-contain shrink-0" />
           </SidebarHeader>
           
           <SidebarContent>
-            <div className="px-4 py-4 group-data-[state=collapsed]:hidden">
-                <div className="p-3 bg-slate-50 rounded border border-slate-200">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Campus Ativo</p>
-                    <div className="flex items-center gap-2">
-                        <Map className="w-3.5 h-3.5 text-primary" />
-                        <span className="text-xs font-bold text-slate-700">{selectedCampus}</span>
-                    </div>
-                </div>
-            </div>
 
             <SidebarMenu className="px-2">
               {filteredMenuItems.map((item) => {
@@ -135,7 +120,7 @@ export function Layout({ children }: LayoutProps) {
                 <div className="flex items-center gap-4">
                     <SidebarTrigger className="text-slate-400 hover:text-slate-600" />
                     <div className="h-4 w-px bg-slate-200 hidden md:block" />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider hidden md:block">UniFil Acadêmico</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider hidden md:block">CampusGrid</span>
                 </div>
 
                 <div className="flex items-center gap-4">

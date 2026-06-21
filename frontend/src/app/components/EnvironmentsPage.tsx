@@ -103,6 +103,10 @@ export function EnvironmentsPage() {
   };
 
   const handleSaveAll = async () => {
+    if (formData.capacidade <= 0 || isNaN(formData.capacidade)) {
+      toast.error("A capacidade do ambiente deve ser maior que zero.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       if (editingId) {
@@ -226,9 +230,11 @@ export function EnvironmentsPage() {
                                     </Button>
                                 </>
                             ) : (
-                                <Button onClick={() => handleReactivateEnvironment(env.idAmbiente)} size="sm" variant="outline" className="h-8 gap-1.5 text-[10px] font-bold uppercase border-slate-300">
-                                    <RefreshCw className="w-3.5 h-3.5" /> Reativar
-                                </Button>
+                                <div className="flex gap-1">
+                                    <Button onClick={() => handleReactivateEnvironment(env.idAmbiente)} size="sm" variant="outline" className="h-8 gap-1.5 text-[10px] font-bold uppercase border-slate-300">
+                                        <RefreshCw className="w-3.5 h-3.5" /> Reativar
+                                    </Button>
+                                </div>
                             )}
                           </div>
                       </div>
@@ -280,8 +286,9 @@ export function EnvironmentsPage() {
             <DialogTitle>{editingId ? "Editar Ambiente" : "Novo Ambiente"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <p className="text-[10px] text-red-500 font-bold uppercase">* Campos obrigatórios</p>
             <div className="grid gap-2">
-              <Label htmlFor="nomeSala">Nome da Sala / Laboratório</Label>
+              <Label htmlFor="nomeSala">Nome da Sala / Laboratório <span className="text-red-500">*</span></Label>
               <Input
                 id="nomeSala"
                 value={formData.nomeSala}
@@ -292,16 +299,20 @@ export function EnvironmentsPage() {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="capacidade">Capacidade</Label>
+                <Label htmlFor="capacidade">Capacidade <span className="text-red-500">*</span></Label>
                 <Input
                   id="capacidade"
                   type="number"
+                  min="1"
                   value={formData.capacidade}
-                  onChange={(e) => setFormData({ ...formData, capacidade: parseInt(e.target.value) })}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setFormData({ ...formData, capacidade: isNaN(val) ? 0 : Math.max(0, val) });
+                  }}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="categoria">Categoria</Label>
+                <Label htmlFor="categoria">Categoria <span className="text-red-500">*</span></Label>
                 <Select 
                   value={formData.categoria} 
                   onValueChange={(val) => setFormData({ ...formData, categoria: val })}
@@ -354,7 +365,7 @@ export function EnvironmentsPage() {
       </Dialog>
 
       <Dialog open={isFichaModalOpen} onOpenChange={setIsFichaModalOpen}>
-        <DialogContent className="sm:max-w-[400px] border-primary/20 shadow-2xl">
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
                 <ClipboardType className="w-5 h-5 text-primary" />

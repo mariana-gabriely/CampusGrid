@@ -3,12 +3,23 @@ import { Layout } from "./Layout";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Usuario } from "../types";
-import { Mail, Plus, Edit2, Trash2, UserPlus, Loader2 } from "lucide-react";
+import { Mail, Plus, Edit2, Trash2, UserPlus, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Switch } from "./ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { toast } from "sonner";
 import { userApi } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -18,6 +29,10 @@ export function UsersPage() {
   const [users, setUsers] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [apenasAtivos, setApenasAtivos] = useState(true);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [deletingUserEmail, setDeletingUserEmail] = useState<string | null>(null);
   
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [nome, setNome] = useState("");
@@ -26,12 +41,12 @@ export function UsersPage() {
   const [perfil, setPerfil] = useState("");
 
   // identifica se o usuário no modal é o próprio admin logado
-  const isEditingSelf = editingUserId && users.find(u => u.id === editingUserId)?.email === currentUser?.email;
+  const isEditingSelf = editingUserId && users.find(u => u.idUsuario === editingUserId)?.email === currentUser?.email;
 
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const data = await userApi.listarTodos();
+      const data = await userApi.listarTodos(apenasAtivos);
       setUsers(data);
     } catch (error) {
       toast.error("erro ao carregar usuários");
@@ -42,11 +57,11 @@ export function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [apenasAtivos]);
 
   const handleOpenModal = (user?: Usuario) => {
     if (user) {
-      setEditingUserId(user.id);
+      setEditingUserId(user.idUsuario);
       setNome(user.nome);
       setEmail(user.email);
       setPerfil(user.perfil);
@@ -92,20 +107,40 @@ export function UsersPage() {
     }
   };
 
-  const handleDelete = async (id: string, userEmail: string) => {
+  const handleDelete = (id: string, userEmail: string) => {
     if (currentUser?.email === userEmail) {
       toast.error("você não pode excluir seu próprio perfil");
       return;
     }
 
-    if (!confirm("deseja realmente excluir este usuário?")) return;
+    setDeletingUserId(id);
+    setDeletingUserEmail(userEmail);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingUserId) return;
 
     try {
-      await userApi.revogarAcesso(id);
-      toast.success("usuário excluído");
+      await userApi.revogarAcesso(deletingUserId);
+      toast.success("usuário desativado");
       fetchUsers();
     } catch (error) {
-      toast.error("erro ao excluir");
+      toast.error("erro ao processar exclusão");
+    } finally {
+      setIsDeleteAlertOpen(false);
+      setDeletingUserId(null);
+      setDeletingUserEmail(null);
+    }
+  };
+
+  const handleReactivate = async (id: string) => {
+    try {
+      await userApi.atualizarDados(id, { ativo: true });
+      toast.success("usuário reativado");
+      fetchUsers();
+    } catch (error) {
+      toast.error("erro ao reativar usuário");
     }
   };
 
@@ -117,12 +152,22 @@ export function UsersPage() {
             <h1 className="text-3xl font-bold text-slate-900">Gestão de Usuários</h1>
             <p className="text-slate-500">listagem e cadastro de funcionários</p>
           </div>
-          <Button 
-            onClick={() => handleOpenModal()}
-            className="rounded-xl shadow-lg shadow-primary/20 h-12 px-6 font-bold gap-2"
-          >
-              <Plus className="w-5 h-5" /> Novo Funcionário
-          </Button>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center space-x-2">
+                <Switch 
+                    id="show-inactive-users" 
+                    checked={!apenasAtivos} 
+                    onCheckedChange={(val) => setApenasAtivos(!val)} 
+                />
+                <Label htmlFor="show-inactive-users" className="text-xs font-bold text-slate-500 uppercase cursor-pointer">Mostrar Desativados</Label>
+            </div>
+            <Button 
+              onClick={() => handleOpenModal()}
+              className="rounded-xl h-12 px-6 font-bold gap-2"
+            >
+                <Plus className="w-5 h-5" /> Novo Funcionário
+            </Button>
+          </div>
         </div>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -135,26 +180,27 @@ export function UsersPage() {
             </DialogHeader>
 
             <form onSubmit={handleSave} className="space-y-5 py-4">
+              <p className="text-[10px] text-red-500 font-bold uppercase">* Campos obrigatórios</p>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-slate-400">Nome Completo</Label>
+                <Label className="text-xs font-bold uppercase text-slate-400">Nome Completo <span className="text-red-500">*</span></Label>
                 <Input value={nome} onChange={(e) => setNome(e.target.value)} className="h-11 rounded-xl" />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-slate-400">E-mail</Label>
+                <Label className="text-xs font-bold uppercase text-slate-400">E-mail <span className="text-red-500">*</span></Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl" />
               </div>
 
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-slate-400">
-                    {editingUserId ? "Nova Senha (deixe em branco para manter)" : "Senha Inicial"}
+                    {editingUserId ? "Nova Senha (deixe em branco para manter)" : "Senha Inicial"} {!editingUserId && <span className="text-red-500">*</span>}
                 </Label>
                 <Input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} className="h-11 rounded-xl" />
               </div>
 
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-slate-400">
-                    Perfil {isEditingSelf && <span className="text-[10px] lowercase text-amber-600">(não é possível alterar seu próprio nível de acesso)</span>}
+                    Perfil <span className="text-red-500">*</span> {isEditingSelf && <span className="text-[10px] lowercase text-amber-600">(não é possível alterar seu próprio nível de acesso)</span>}
                 </Label>
                 <Select value={perfil} onValueChange={setPerfil} disabled={!!isEditingSelf}>
                   <SelectTrigger className="h-11 rounded-xl">
@@ -183,14 +229,17 @@ export function UsersPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map((u) => (
-                <Card key={u.id} className="rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
+                <Card key={u.idUsuario} className={`rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow group ${!u.ativo ? 'opacity-60 bg-slate-50' : ''}`}>
                     <CardContent className="p-6">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary font-black text-xl">
                                 {u.nome.charAt(0)}
                             </div>
                             <div>
-                                <h3 className="font-bold text-slate-900 text-lg leading-tight">{u.nome}</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-slate-900 text-lg leading-tight">{u.nome}</h3>
+                                    {!u.ativo && <Badge className="bg-slate-400 text-white text-[8px] uppercase">Desativado</Badge>}
+                                </div>
                                 <Badge variant="secondary" className="mt-1 uppercase text-[10px]">
                                     {u.perfil}
                                 </Badge>
@@ -205,29 +254,63 @@ export function UsersPage() {
                         </div>
 
                         <div className="flex gap-2 pt-4 border-t border-slate-50">
-                            <Button 
-                                variant="outline" 
-                                onClick={() => handleOpenModal(u)}
-                                className="flex-1 rounded-xl h-10 text-xs font-bold"
-                            >
-                                <Edit2 className="w-3.5 h-3.5 mr-2" /> Editar
-                            </Button>
-                            
-                            <Button 
-                              variant="outline" 
-                              onClick={() => handleDelete(u.id, u.email)}
-                              className="rounded-xl h-10 text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                              disabled={currentUser?.email === u.email}
-                              title={currentUser?.email === u.email ? "você não pode excluir seu próprio perfil" : ""}
-                            >
-                                <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            {u.ativo ? (
+                                <>
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={() => handleOpenModal(u)}
+                                        className="flex-1 rounded-xl h-10 text-xs font-bold"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5 mr-2" /> Editar
+                                    </Button>
+                                    
+                                    <Button 
+                                      variant="outline" 
+                                      onClick={() => handleDelete(u.idUsuario, u.email)}
+                                      className="rounded-xl h-10 text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                                      disabled={currentUser?.email === u.email}
+                                      title={currentUser?.email === u.email ? "você não pode excluir seu próprio perfil" : ""}
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={() => handleReactivate(u.idUsuario)}
+                                        className="flex-1 rounded-xl h-10 text-xs font-bold gap-2"
+                                    >
+                                        <RefreshCw className="w-3.5 h-3.5" /> Reativar
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
             ))}
           </div>
         )}
+
+        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+          <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Desativar Funcionário?</AlertDialogTitle>
+              <AlertDialogDescription>
+                O acesso do usuário {deletingUserEmail} será revogado, mas seus dados permanecerão no sistema para fins de histórico.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmDelete} 
+                className="bg-red-500 hover:bg-red-600 rounded-xl"
+              >
+                Confirmar Desativação
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
