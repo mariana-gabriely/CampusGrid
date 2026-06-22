@@ -84,6 +84,11 @@ export function UsersPage() {
       return;
     }
 
+    if (!email.toLowerCase().endsWith(".br")) {
+      toast.error("o e-mail deve terminar com .br");
+      return;
+    }
+
     try {
       const body = { 
         nome, 
@@ -150,7 +155,7 @@ export function UsersPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Gestão de Usuários</h1>
-            <p className="text-slate-500">listagem e cadastro de funcionários</p>
+            <p className="text-slate-500">Listagem e cadastro de funcionários</p>
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center space-x-2">

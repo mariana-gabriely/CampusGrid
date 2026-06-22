@@ -25,10 +25,10 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
 export const environmentApi = {
   listarTodos: (apenasAtivos: boolean = true) => apiFetch(`/environments?apenasAtivos=${apenasAtivos}`),
-  cadastrarEspaco: (data: any) => apiFetch("/environments", { method: "POST", body: JSON.stringify(data) }),
-  atualizarFichaTecnica: (id: string, data: any) => apiFetch(`/environments/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  removerEspaco: (id: string) => apiFetch(`/environments/${id}`, { method: "DELETE" }),
-  ativarEspaco: (id: string) => apiFetch(`/environments/${id}/ativar`, { method: "PATCH" }),
+  cadastrarAmbiente: (data: any) => apiFetch("/environments", { method: "POST", body: JSON.stringify(data) }),
+  atualizarAmbiente: (id: string, data: any) => apiFetch(`/environments/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  desativarAmbiente: (id: string) => apiFetch(`/environments/${id}`, { method: "DELETE" }),
+  ativarAmbiente: (id: string) => apiFetch(`/environments/${id}/ativar`, { method: "PATCH" }),
   apagarFichaTecnica: (id: string) => apiFetch(`/environments/${id}/ficha`, { method: "DELETE" }),
 };
 

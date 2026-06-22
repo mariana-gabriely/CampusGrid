@@ -110,10 +110,10 @@ export function EnvironmentsPage() {
     setIsSubmitting(true);
     try {
       if (editingId) {
-        await environmentApi.atualizarFichaTecnica(editingId, formData);
+        await environmentApi.atualizarAmbiente(editingId, formData);
         toast.success("Dados salvos com sucesso!");
       } else {
-        await environmentApi.cadastrarEspaco(formData);
+        await environmentApi.cadastrarAmbiente(formData);
         toast.success("Ambiente cadastrado com sucesso!");
       }
       setIsEnvModalOpen(false);
@@ -129,7 +129,7 @@ export function EnvironmentsPage() {
   const handleDeleteEnvironment = async () => {
     if (!deletingId) return;
     try {
-      await environmentApi.removerEspaco(deletingId);
+      await environmentApi.desativarAmbiente(deletingId);
       toast.success("Ambiente desativado!");
       loadData();
     } catch (error) {
@@ -142,7 +142,7 @@ export function EnvironmentsPage() {
 
   const handleReactivateEnvironment = async (id: string) => {
     try {
-      await environmentApi.ativarEspaco(id);
+      await environmentApi.ativarAmbiente(id);
       toast.success("Ambiente reativado!");
       loadData();
     } catch (error) {

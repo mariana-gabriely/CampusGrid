@@ -31,7 +31,7 @@ public class AmbienteService {
     }
 
     @Transactional
-    public AmbienteResponseDTO cadastrarEspaco(AmbienteRequestDTO data) {
+    public AmbienteResponseDTO cadastrarAmbiente(AmbienteRequestDTO data) {
         Ambiente newEnvironment = new Ambiente(
                 data.nomeSala(),
                 data.capacidade(),
@@ -51,7 +51,7 @@ public class AmbienteService {
     }
 
     @Transactional
-    public AmbienteResponseDTO atualizarFichaTecnica(String id, AmbienteRequestDTO data) {
+    public AmbienteResponseDTO atualizarAmbiente(String id, AmbienteRequestDTO data) {
         Ambiente environment = repository.findById(id).orElseThrow(() -> new RuntimeException("Ambiente não encontrado"));
 
         environment.setNomeSala(data.nomeSala());
@@ -79,14 +79,14 @@ public class AmbienteService {
     }
 
     @Transactional
-    public void removerEspaco(String id) {
+    public void desativarAmbiente(String id) {
         Ambiente environment = repository.findById(id).orElseThrow(() -> new RuntimeException("Ambiente não encontrado"));
         environment.setAtivo(false);
         repository.save(environment);
     }
 
     @Transactional
-    public void ativarEspaco(String id) {
+    public void ativarAmbiente(String id) {
         Ambiente environment = repository.findById(id).orElseThrow(() -> new RuntimeException("Ambiente não encontrado"));
         environment.setAtivo(true);
         repository.save(environment);
