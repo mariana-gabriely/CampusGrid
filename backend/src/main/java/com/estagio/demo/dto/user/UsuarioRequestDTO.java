@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Pattern;
 
 public record UsuarioRequestDTO(
     @NotBlank String nome,
-    @NotBlank @Email @Pattern(regexp = "^.+\\.br$", message = "O e-mail deve terminar com .br") String email,
+    @NotBlank @Email @Pattern(regexp = "^.+@unifil\\.br$", message = "O e-mail deve terminar com @unifil.br") String email,
     @NotBlank String senha,
     @NotNull UserRole perfil
 ) {}
