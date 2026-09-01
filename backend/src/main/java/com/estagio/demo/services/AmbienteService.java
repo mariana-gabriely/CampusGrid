@@ -2,10 +2,12 @@ package com.estagio.demo.services;
 
 import com.estagio.demo.domain.environment.Ambiente;
 import com.estagio.demo.domain.environment.FichaTecnica;
+import com.estagio.demo.domain.user.Usuario;
 import com.estagio.demo.dto.environment.AmbienteRequestDTO;
 import com.estagio.demo.dto.environment.AmbienteResponseDTO;
 import com.estagio.demo.repositories.AmbienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,15 @@ public class AmbienteService {
 
     @Autowired
     private AmbienteRepository repository;
+
+    @Autowired
+    private AuditoriaService auditoriaService;
+
+    private Usuario getUsuarioLogado() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Usuario u) return u;
+        return null;
+    }
 
     @Transactional(readOnly = true)
     public List<AmbienteResponseDTO> listarTodos(boolean apenasAtivos) {
@@ -39,14 +50,16 @@ public class AmbienteService {
                 data.exclusivoCurso()
         );
 
-        if ((data.observacoes() != null && !data.observacoes().isBlank()) || 
+        if ((data.observacoes() != null && !data.observacoes().isBlank()) ||
             (data.recursos() != null && !data.recursos().isEmpty())) {
-            
             FichaTecnica ficha = new FichaTecnica(newEnvironment, data.observacoes(), data.recursos());
             newEnvironment.setFichaTecnica(ficha);
         }
 
         repository.save(newEnvironment);
+
+
+
         return new AmbienteResponseDTO(newEnvironment);
     }
 
@@ -54,16 +67,17 @@ public class AmbienteService {
     public AmbienteResponseDTO atualizarAmbiente(String id, AmbienteRequestDTO data) {
         Ambiente environment = repository.findById(id).orElseThrow(() -> new RuntimeException("Ambiente não encontrado"));
 
+        String valorAntigo = environment.getNomeSala() + " | Cap: " + environment.getCapacidade();
+
         environment.setNomeSala(data.nomeSala());
         environment.setCapacidade(data.capacidade());
         environment.setCategoria(data.categoria());
         environment.setExclusivoCurso(data.exclusivoCurso());
 
         FichaTecnica ficha = environment.getFichaTecnica();
-        
-        if ((data.observacoes() != null && !data.observacoes().isBlank()) || 
+
+        if ((data.observacoes() != null && !data.observacoes().isBlank()) ||
             (data.recursos() != null && !data.recursos().isEmpty())) {
-            
             if (ficha == null) {
                 ficha = new FichaTecnica();
                 environment.setFichaTecnica(ficha);
@@ -75,6 +89,9 @@ public class AmbienteService {
         }
 
         repository.save(environment);
+
+
+
         return new AmbienteResponseDTO(environment);
     }
 
@@ -83,6 +100,8 @@ public class AmbienteService {
         Ambiente environment = repository.findById(id).orElseThrow(() -> new RuntimeException("Ambiente não encontrado"));
         environment.setAtivo(false);
         repository.save(environment);
+
+
     }
 
     @Transactional
