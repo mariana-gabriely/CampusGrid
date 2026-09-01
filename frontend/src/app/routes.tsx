@@ -9,6 +9,7 @@ import { AuditLogPage } from "./components/AuditLogPage";
 import { EnvironmentsPage } from "./components/EnvironmentsPage";
 import { ReportsPage } from "./components/ReportsPage";
 import { UsersPage } from "./components/UsersPage"; // Import new page
+import { PermutasPage } from "./components/PermutasPage";
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       { path: "dashboard", Component: DashboardPage },
       { path: "new-request", Component: NewRequestPage },
       { path: "my-requests", Component: MyRequestsPage },
+      { path: "permutas", Component: PermutasPage },
       { path: "approval-panel", Component: ApprovalPanelPage },
       { path: "audit-log", Component: AuditLogPage },
       { path: "users", Component: UsersPage }, // Added route
