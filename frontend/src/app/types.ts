@@ -6,6 +6,7 @@ export interface Usuario {
   email: string;
   perfil: UserRole;
   ativo: boolean;
+  curso?: string;
 }
 
 export type RequestStatus = "pendente" | "aprovado" | "recusado";

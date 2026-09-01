@@ -6,8 +6,9 @@ import jakarta.validation.constraints.Pattern;
 
 public record UsuarioUpdateDTO(
     String nome,
-    @Email @Pattern(regexp = "^.+@unifil\\.br$", message = "O e-mail deve terminar com @unifil.br") String email,
+    @Email @Pattern(regexp = "^.+@(edu\\.)?unifil\\.br$", message = "O e-mail deve terminar com @unifil.br ou @edu.unifil.br") String email,
     String senha,
     UserRole perfil,
-    Boolean ativo
+    Boolean ativo,
+    String curso
 ) {}

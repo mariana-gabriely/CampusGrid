@@ -55,7 +55,28 @@ public class SecurityConfig {
                         // controle de acesso para recursos
                         .requestMatchers(HttpMethod.GET, "/resources").hasAnyRole("APROVADOR", "SOLICITANTE")
                         .requestMatchers(HttpMethod.POST, "/resources").hasRole("APROVADOR")
-                        
+
+                        // controle de acesso para reservas
+                        .requestMatchers(HttpMethod.POST, "/reservas").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.GET, "/reservas/minhas").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.GET, "/reservas/ocupacao").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.DELETE, "/reservas/**").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.GET, "/reservas").hasRole("APROVADOR")
+                        .requestMatchers(HttpMethod.GET, "/reservas/pendentes").hasRole("APROVADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/reservas/**").hasRole("APROVADOR")
+                        .requestMatchers(HttpMethod.GET, "/reservas/*/anexo").hasAnyRole("APROVADOR", "SOLICITANTE")
+
+                        // controle de acesso para permutas
+                        .requestMatchers(HttpMethod.POST, "/permutas").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.PATCH, "/permutas/*/responder").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.GET, "/permutas/recebidas").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.GET, "/permutas/enviadas").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.GET, "/permutas/pendentes-gestor").hasRole("APROVADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/permutas/*/avaliar-gestor").hasRole("APROVADOR")
+
+                        // controle de acesso para auditoria
+                        .requestMatchers("/audit-log/**").hasRole("APROVADOR")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

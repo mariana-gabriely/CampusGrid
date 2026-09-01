@@ -34,11 +34,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem("campusgrid_token", data.token);
       
       const realUser: Usuario = {
-        idUsuario: "id-from-token",
+        idUsuario: data.idUsuario,
         nome: data.nome,
         email: data.email,
         perfil: data.perfil,
-        ativo: true
+        ativo: true,
+        curso: data.curso
       };
 
       setUser(realUser);

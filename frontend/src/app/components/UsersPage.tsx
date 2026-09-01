@@ -39,6 +39,7 @@ export function UsersPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [perfil, setPerfil] = useState("");
+  const [curso, setCurso] = useState("");
 
   // identifica se o usuário no modal é o próprio admin logado
   const isEditingSelf = editingUserId && users.find(u => u.idUsuario === editingUserId)?.email === currentUser?.email;
@@ -65,12 +66,14 @@ export function UsersPage() {
       setNome(user.nome);
       setEmail(user.email);
       setPerfil(user.perfil);
+      setCurso(user.curso || "");
       setSenha("");
     } else {
       setEditingUserId(null);
       setNome("");
       setEmail("");
       setPerfil("");
+      setCurso("");
       setSenha("");
     }
     setIsModalOpen(true);
@@ -84,8 +87,9 @@ export function UsersPage() {
       return;
     }
 
-    if (!email.toLowerCase().endsWith("@unifil.br")) {
-      toast.error("o e-mail deve terminar com @unifil.br");
+    const emailLower = email.toLowerCase();
+    if (!emailLower.endsWith("@unifil.br") && !emailLower.endsWith("@edu.unifil.br")) {
+      toast.error("o e-mail deve terminar com @unifil.br ou @edu.unifil.br");
       return;
     }
 
@@ -94,6 +98,7 @@ export function UsersPage() {
         nome, 
         email, 
         perfil: perfil,
+        curso: curso.trim() || undefined,
         ...(senha ? { senha } : {})
       };
 
@@ -218,6 +223,11 @@ export function UsersPage() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-slate-400">Curso Vinculado</Label>
+                <Input placeholder="Ex: Engenharia de Software (opcional)" value={curso} onChange={(e) => setCurso(e.target.value)} className="h-11 rounded-xl" />
+              </div>
+
               <DialogFooter className="pt-6">
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-xl flex-1">Cancelar</Button>
                 <Button type="submit" className="rounded-xl flex-1">Salvar Alterações</Button>
@@ -251,12 +261,18 @@ export function UsersPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-3 mb-6 text-sm text-slate-500">
-                            <div className="flex items-center gap-2">
-                                <Mail className="w-4 h-4 text-slate-400" />
-                                <span>{u.email}</span>
-                            </div>
-                        </div>
+                         <div className="space-y-3 mb-6 text-sm text-slate-500">
+                             <div className="flex items-center gap-2">
+                                 <Mail className="w-4 h-4 text-slate-400" />
+                                 <span>{u.email}</span>
+                             </div>
+                             {u.curso && (
+                                 <div className="flex items-center gap-2">
+                                     <span className="text-[10px] font-bold text-slate-400 uppercase">Curso:</span>
+                                     <span className="font-semibold text-slate-700">{u.curso}</span>
+                                 </div>
+                             )}
+                         </div>
 
                         <div className="flex gap-2 pt-4 border-t border-slate-50">
                             {u.ativo ? (

@@ -34,12 +34,23 @@ public class Usuario implements UserDetails {
 
     private boolean ativo;
 
+    private String curso;
+
     public Usuario(String nome, String email, String senha, UserRole perfil) {
         this.nome = nome;
         this.email = email;
         this.senha = senha;
         this.perfil = perfil;
         this.ativo = true;
+    }
+
+    public Usuario(String nome, String email, String senha, UserRole perfil, String curso) {
+        this.nome = nome;
+        this.email = email;
+        this.senha = senha;
+        this.perfil = perfil;
+        this.ativo = true;
+        this.curso = curso;
     }
 
     @Override
