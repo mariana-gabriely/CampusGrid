@@ -1,4 +1,5 @@
-export type UserRole = "SOLICITANTE" | "APROVADOR";
+export type UserRole = "SOLICITANTE" | "APROVADOR" | "TECNICO";
+export type Campus = "CAMPUS_CANADA" | "IPOLON" | "SEDE" | "ENGENHARIA";
 
 export interface Usuario {
   idUsuario: string;
@@ -7,6 +8,11 @@ export interface Usuario {
   perfil: UserRole;
   ativo: boolean;
   curso?: string;
+  campus: Campus;
+  nomeCampus: string;
+  exigePreparacaoTecnica?: boolean;
+  idsTecnicosResponsaveis?: string[];
+  nomesTecnicosResponsaveis?: string[];
 }
 
 export type RequestStatus = "pendente" | "aprovado" | "recusado";
@@ -22,6 +28,8 @@ export interface Ambiente {
   recursos: string[]; // Agora é uma lista simples de strings
   status: boolean;
   ativo: boolean;
+  campus: Campus;
+  nomeCampus: string;
 }
 
 export interface Reserva {

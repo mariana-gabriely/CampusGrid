@@ -39,7 +39,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: data.email,
         perfil: data.perfil,
         ativo: true,
-        curso: data.curso
+        curso: data.curso,
+        campus: data.campus,
+        nomeCampus: data.nomeCampus,
       };
 
       setUser(realUser);
