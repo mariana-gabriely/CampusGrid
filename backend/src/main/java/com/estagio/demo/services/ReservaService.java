@@ -10,12 +10,14 @@ import com.estagio.demo.dto.reserva.ReservaResponseDTO;
 import com.estagio.demo.repositories.AmbienteRepository;
 import com.estagio.demo.repositories.ReservaRepository;
 import com.estagio.demo.repositories.UsuarioRepository;
+import com.estagio.demo.repositories.BloqueioInstitucionalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.estagio.demo.domain.user.UserRole;
 import com.lowagie.text.*;
@@ -37,6 +39,8 @@ public class ReservaService {
     @Autowired private AmbienteRepository ambienteRepository;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private AuditoriaService auditoriaService;
+    @Autowired private BloqueioInstitucionalRepository bloqueioRepository;
+    @Autowired private EmailService emailService;
 
     // ─────────────────────────────────────────────
     // Helpers
@@ -61,6 +65,9 @@ public class ReservaService {
 
         Ambiente ambiente = ambienteRepository.findById(data.idAmbiente())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ambiente não encontrado"));
+        validarCampus(ambiente, solicitante);
+
+        validarPeriodoPermitido(ambiente, data.dataInicio(), data.dataFim());
 
         if (!ambiente.isAtivo()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ambiente inativo");
@@ -82,21 +89,14 @@ public class ReservaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O público esperado excede a capacidade máxima do ambiente (" + ambiente.getCapacidade() + " pessoas)");
         }
 
-        if (("LABORATORIO".equalsIgnoreCase(ambiente.getCategoria()) || "AUDITORIO".equalsIgnoreCase(ambiente.getCategoria())) &&
+        if (exigeAnexo(ambiente) &&
             (file == null || file.isEmpty())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Documento comprobatório obrigatório para laboratórios e auditórios");
         }
 
         Reserva reserva = new Reserva(ambiente, solicitante, data.dataInicio(), data.dataFim(), data.observacoes(), data.publicoEsperado());
 
-        if (file != null && !file.isEmpty()) {
-            try {
-                reserva.setAnexoNome(file.getOriginalFilename());
-                reserva.setAnexoConteudo(file.getBytes());
-            } catch (java.io.IOException e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao ler conteúdo do anexo", e);
-            }
-        }
+        aplicarAnexo(reserva, file);
 
         reservaRepository.save(reserva);
 
@@ -107,6 +107,10 @@ public class ReservaService {
                 "Reserva solicitada para " + ambiente.getNomeSala() +
                 " de " + data.dataInicio() + " até " + data.dataFim()
         );
+        usuarioRepository.findByCampusAndPerfilAndAtivoTrueOrderByNome(
+                solicitante.getCampus(), UserRole.APROVADOR).forEach(gestor ->
+                emailService.enviarNotificacao(gestor.getEmail(), "Nova reserva pendente - CampusGrid",
+                        solicitante.getNome() + " solicitou " + ambiente.getNomeSala() + " para " + data.dataInicio()));
 
         return new ReservaResponseDTO(reserva);
     }
@@ -131,6 +135,8 @@ public class ReservaService {
 
         Ambiente ambiente = ambienteRepository.findById(data.idAmbiente())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ambiente não encontrado"));
+        validarCampus(ambiente, solicitante);
+        validarPeriodoPermitido(ambiente, data.dataInicio(), data.dataFim());
 
         if (!ambiente.isAtivo()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ambiente inativo");
@@ -152,7 +158,7 @@ public class ReservaService {
 
         validarConflitoHorario(data.idAmbiente(), data.dataInicio(), data.dataFim(), idReserva);
 
-        boolean isLabOrAuditorio = "LABORATORIO".equalsIgnoreCase(ambiente.getCategoria()) || "AUDITORIO".equalsIgnoreCase(ambiente.getCategoria());
+        boolean isLabOrAuditorio = exigeAnexo(ambiente);
         boolean hasExistingFile = reserva.getAnexoConteudo() != null && reserva.getAnexoConteudo().length > 0;
 
         if (isLabOrAuditorio && !hasExistingFile && (file == null || file.isEmpty())) {
@@ -168,14 +174,7 @@ public class ReservaService {
         reserva.setObservacoes(data.observacoes());
         reserva.setPublicoEsperado(data.publicoEsperado());
 
-        if (file != null && !file.isEmpty()) {
-            try {
-                reserva.setAnexoNome(file.getOriginalFilename());
-                reserva.setAnexoConteudo(file.getBytes());
-            } catch (java.io.IOException e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao ler conteúdo do anexo", e);
-            }
-        }
+        aplicarAnexo(reserva, file);
 
         reservaRepository.save(reserva);
 
@@ -198,6 +197,40 @@ public class ReservaService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva não encontrada"));
     }
 
+    private void aplicarAnexo(Reserva reserva, MultipartFile file) {
+        if (file == null || file.isEmpty()) return;
+        if (file.getSize() > 10L * 1024 * 1024) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "O anexo deve ter no máximo 10 MB");
+        }
+        if (!"application/pdf".equalsIgnoreCase(file.getContentType())) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Apenas arquivos PDF são permitidos");
+        }
+        try {
+            byte[] conteudo = file.getBytes();
+            if (conteudo.length < 5 || conteudo[0] != '%' || conteudo[1] != 'P' || conteudo[2] != 'D' || conteudo[3] != 'F' || conteudo[4] != '-') {
+                throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "O arquivo enviado não é um PDF válido");
+            }
+            String nome = file.getOriginalFilename() == null ? "anexo.pdf" : file.getOriginalFilename();
+            reserva.setAnexoNome(nome.replaceAll("[^a-zA-Z0-9._ -]", "_"));
+            reserva.setAnexoConteudo(conteudo);
+        } catch (java.io.IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao ler conteúdo do anexo", e);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Reserva buscarReservaAutorizada(String idReserva) {
+        Reserva reserva = buscarReservaEntidade(idReserva);
+        Usuario usuario = getUsuarioLogado();
+        boolean aprovador = usuario.getPerfil() == UserRole.APROVADOR
+                && reserva.getAmbiente().getCampus().equals(usuario.getCampus());
+        boolean proprietario = reserva.getSolicitante().getIdUsuario().equals(usuario.getIdUsuario());
+        if (!aprovador && !proprietario) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não pode acessar esta reserva");
+        }
+        return reserva;
+    }
+
     // ─────────────────────────────────────────────
     // Validação de conflito (conforme regra de negócio)
     // ─────────────────────────────────────────────
@@ -211,6 +244,25 @@ public class ReservaService {
         }
     }
 
+    private void validarPeriodoPermitido(Ambiente ambiente, LocalDateTime inicio, LocalDateTime fim) {
+        if (!fim.isAfter(inicio)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Data de fim deve ser posterior à data de início");
+        }
+        if (inicio.isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível reservar uma data ou horário passado");
+        }
+        if (bloqueioRepository.existeBloqueio(ambiente.getCampus(), ambiente.getIdAmbiente(), inicio, fim)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "O ambiente ou campus está bloqueado institucionalmente neste período");
+        }
+    }
+
+    private boolean exigeAnexo(Ambiente ambiente) {
+        String categoria = java.text.Normalizer.normalize(ambiente.getCategoria(), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toUpperCase();
+        return "LABORATORIO".equals(categoria) || "AUDITORIO".equals(categoria);
+    }
+
     // ─────────────────────────────────────────────
     // UC: Aprovar Reserva
     // ─────────────────────────────────────────────
@@ -219,8 +271,13 @@ public class ReservaService {
     public ReservaResponseDTO aprovarReserva(String idReserva) {
         Usuario aprovador = getUsuarioLogado();
         Reserva reserva = buscarReservaEntidade(idReserva);
+        validarCampus(reserva.getAmbiente(), aprovador);
 
         if (reserva.getStatus() == ReservaStatus.PENDENTE) {
+            // Serializa aprovações do mesmo ambiente antes de consultar conflitos.
+            ambienteRepository.findByIdForUpdate(reserva.getAmbiente().getIdAmbiente())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ambiente não encontrado"));
+            validarPeriodoPermitido(reserva.getAmbiente(), reserva.getDataInicio(), reserva.getDataFim());
             // Verifica conflito com outras aprovadas (pode ter surgido desde a criação)
             validarConflitoHorario(
                     reserva.getAmbiente().getIdAmbiente(),
@@ -243,6 +300,16 @@ public class ReservaService {
                     "Reserva de " + reserva.getSolicitante().getNome() +
                     " aprovada para " + reserva.getAmbiente().getNomeSala()
             );
+            emailService.enviarNotificacao(reserva.getSolicitante().getEmail(),
+                    "Reserva aprovada - CampusGrid",
+                    "Sua reserva de " + reserva.getAmbiente().getNomeSala() + " foi aprovada.");
+            if (reserva.getAmbiente().isExigePreparacaoTecnica()) {
+                reserva.getAmbiente().getTecnicosResponsaveis().forEach(tecnico ->
+                        emailService.enviarNotificacao(tecnico.getEmail(),
+                                "Laboratório precisa de preparação - CampusGrid",
+                                "Prepare " + reserva.getAmbiente().getNomeSala() + " para a reserva de "
+                                        + reserva.getDataInicio() + ". Observações: " + reserva.getObservacoes()));
+            }
         } else if (reserva.getStatus() == ReservaStatus.PENDENTE_CANCELAMENTO) {
             reserva.setStatus(ReservaStatus.CANCELADO);
             reserva.setAprovador(aprovador);
@@ -257,6 +324,9 @@ public class ReservaService {
                     "CANCELADO",
                     "Cancelamento de reserva homologado pelo gestor para o ambiente " + reserva.getAmbiente().getNomeSala()
             );
+            emailService.enviarNotificacao(reserva.getSolicitante().getEmail(),
+                    "Cancelamento aprovado - CampusGrid",
+                    "O cancelamento da reserva de " + reserva.getAmbiente().getNomeSala() + " foi aprovado.");
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Apenas reservas pendentes de aprovação ou de cancelamento podem ser aprovadas");
@@ -277,6 +347,7 @@ public class ReservaService {
 
         Usuario aprovador = getUsuarioLogado();
         Reserva reserva = buscarReservaEntidade(idReserva);
+        validarCampus(reserva.getAmbiente(), aprovador);
 
         if (reserva.getStatus() == ReservaStatus.PENDENTE) {
             reserva.setStatus(ReservaStatus.RECUSADO);
@@ -293,6 +364,9 @@ public class ReservaService {
                     "RECUSADO",
                     "Motivo: " + data.motivoRecusa()
             );
+            emailService.enviarNotificacao(reserva.getSolicitante().getEmail(),
+                    "Reserva recusada - CampusGrid",
+                    "Sua reserva foi recusada. Motivo: " + data.motivoRecusa());
         } else if (reserva.getStatus() == ReservaStatus.PENDENTE_CANCELAMENTO) {
             reserva.setStatus(ReservaStatus.APROVADO);
             reserva.setAprovador(aprovador);
@@ -308,6 +382,9 @@ public class ReservaService {
                     "APROVADO",
                     "Cancelamento de reserva recusado pelo gestor. Motivo: " + data.motivoRecusa()
             );
+            emailService.enviarNotificacao(reserva.getSolicitante().getEmail(),
+                    "Cancelamento recusado - CampusGrid",
+                    "Seu pedido de cancelamento foi recusado. Motivo: " + data.motivoRecusa());
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Apenas reservas pendentes de aprovação ou de cancelamento podem ser recusadas");
@@ -356,6 +433,12 @@ public class ReservaService {
                     "PENDENTE_CANCELAMENTO",
                     "Solicitação de cancelamento de reserva aprovada enviada pelo solicitante: " + reserva.getAmbiente().getNomeSala()
             );
+            usuarioRepository.findByCampusAndPerfilAndAtivoTrueOrderByNome(
+                    usuario.getCampus(), UserRole.APROVADOR).forEach(gestor ->
+                    emailService.enviarNotificacao(gestor.getEmail(),
+                            "Pedido de cancelamento - CampusGrid",
+                            usuario.getNome() + " pediu o cancelamento de uma reserva em "
+                                    + reserva.getAmbiente().getNomeSala()));
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Esta reserva não pode ser cancelada no estado atual");
@@ -368,14 +451,18 @@ public class ReservaService {
 
     @Transactional(readOnly = true)
     public List<ReservaResponseDTO> listarTodas() {
+        Usuario usuario = getUsuarioLogado();
         return reservaRepository.findAllByOrderByCreatedAtDesc()
-                .stream().map(ReservaResponseDTO::new).collect(Collectors.toList());
+                .stream().filter(r -> r.getAmbiente().getCampus().equals(usuario.getCampus()))
+                .map(ReservaResponseDTO::new).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<ReservaResponseDTO> listarPendentes() {
+        Usuario usuario = getUsuarioLogado();
         return reservaRepository.findPendentesGerais()
-                .stream().map(ReservaResponseDTO::new).collect(Collectors.toList());
+                .stream().filter(r -> r.getAmbiente().getCampus().equals(usuario.getCampus()))
+                .map(ReservaResponseDTO::new).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -387,8 +474,10 @@ public class ReservaService {
 
     @Transactional(readOnly = true)
     public List<ReservaResponseDTO> listarAprovadasNoPeriodo(LocalDateTime inicio, LocalDateTime fim) {
+        Usuario usuario = getUsuarioLogado();
         return reservaRepository.findAprovadasNoPeriodo(inicio, fim)
-                .stream().map(ReservaResponseDTO::new).collect(Collectors.toList());
+                .stream().filter(r -> r.getAmbiente().getCampus().equals(usuario.getCampus()))
+                .map(ReservaResponseDTO::new).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -400,6 +489,7 @@ public class ReservaService {
 
         Ambiente ambiente = ambienteRepository.findById(idAmbiente)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ambiente não encontrado"));
+        validarCampus(ambiente, logado);
 
         List<Reserva> reservas = reservaRepository.findAprovadasNoPeriodo(inicio, fim)
                 .stream()
@@ -527,5 +617,11 @@ public class ReservaService {
                     "Apenas reservas pendentes podem ser avaliadas");
         }
         return reserva;
+    }
+
+    private void validarCampus(Ambiente ambiente, Usuario usuario) {
+        if (!ambiente.getCampus().equals(usuario.getCampus())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ambiente pertence a outro campus");
+        }
     }
 }

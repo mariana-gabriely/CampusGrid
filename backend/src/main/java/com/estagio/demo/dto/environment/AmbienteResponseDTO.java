@@ -13,7 +13,12 @@ public record AmbienteResponseDTO(
     String observacoes,
     List<String> recursos,
     boolean status,
-    boolean ativo
+    boolean ativo,
+    String campus,
+    String nomeCampus,
+    boolean exigePreparacaoTecnica,
+    List<String> idsTecnicosResponsaveis,
+    List<String> nomesTecnicosResponsaveis
 ) {
     public AmbienteResponseDTO(Ambiente environment) {
         this(
@@ -25,7 +30,12 @@ public record AmbienteResponseDTO(
             environment.getFichaTecnica() != null ? environment.getFichaTecnica().getObservacoes() : null,
             environment.getFichaTecnica() != null ? environment.getFichaTecnica().getRecursos() : List.of(),
             environment.isStatus(),
-            environment.isAtivo()
+            environment.isAtivo(),
+            environment.getCampus().getIdCampus(),
+            environment.getCampus().getNome(),
+            environment.isExigePreparacaoTecnica(),
+            environment.getTecnicosResponsaveis().stream().map(u -> u.getIdUsuario()).toList(),
+            environment.getTecnicosResponsaveis().stream().map(u -> u.getNome()).toList()
         );
     }
 }

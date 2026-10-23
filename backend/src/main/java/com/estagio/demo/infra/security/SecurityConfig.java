@@ -1,6 +1,7 @@
 package com.estagio.demo.infra.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -9,7 +10,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +28,9 @@ public class SecurityConfig {
     @Autowired
     SecurityFilter securityFilter;
 
+    @Value("${app.cors.allowed-origins:http://localhost:5173}")
+    private List<String> allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
@@ -35,7 +38,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/recovery").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/campuses").authenticated()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api-docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**").permitAll()
                         
@@ -46,11 +50,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("APROVADOR")
 
                         // controle de acesso para ambientes
-                        .requestMatchers(HttpMethod.GET, "/environments").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.GET, "/environments").hasAnyRole("APROVADOR", "SOLICITANTE", "TECNICO")
                         .requestMatchers(HttpMethod.POST, "/environments").hasRole("APROVADOR")
                         .requestMatchers(HttpMethod.PUT, "/environments/**").hasRole("APROVADOR")
                         .requestMatchers(HttpMethod.DELETE, "/environments/**").hasRole("APROVADOR")
                         .requestMatchers(HttpMethod.PATCH, "/environments/**").hasRole("APROVADOR")
+
+                        .requestMatchers(HttpMethod.GET, "/institutional-blocks").hasAnyRole("APROVADOR", "SOLICITANTE", "TECNICO")
+                        .requestMatchers("/institutional-blocks/**").hasRole("APROVADOR")
 
                         // controle de acesso para recursos
                         .requestMatchers(HttpMethod.GET, "/resources").hasAnyRole("APROVADOR", "SOLICITANTE")
@@ -59,7 +66,7 @@ public class SecurityConfig {
                         // controle de acesso para reservas
                         .requestMatchers(HttpMethod.POST, "/reservas").hasAnyRole("APROVADOR", "SOLICITANTE")
                         .requestMatchers(HttpMethod.GET, "/reservas/minhas").hasAnyRole("APROVADOR", "SOLICITANTE")
-                        .requestMatchers(HttpMethod.GET, "/reservas/ocupacao").hasAnyRole("APROVADOR", "SOLICITANTE")
+                        .requestMatchers(HttpMethod.GET, "/reservas/ocupacao").hasAnyRole("APROVADOR", "SOLICITANTE", "TECNICO")
                         .requestMatchers(HttpMethod.DELETE, "/reservas/**").hasAnyRole("APROVADOR", "SOLICITANTE")
                         .requestMatchers(HttpMethod.GET, "/reservas").hasRole("APROVADOR")
                         .requestMatchers(HttpMethod.GET, "/reservas/pendentes").hasRole("APROVADOR")
@@ -86,7 +93,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);

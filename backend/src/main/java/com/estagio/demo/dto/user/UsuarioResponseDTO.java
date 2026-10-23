@@ -9,9 +9,12 @@ public record UsuarioResponseDTO(
     String email,
     UserRole perfil,
     boolean ativo,
-    String curso
+    String curso,
+    String campus,
+    String nomeCampus
 ) {
     public UsuarioResponseDTO(Usuario user) {
-        this(user.getIdUsuario(), user.getNome(), user.getEmail(), user.getPerfil(), user.isAtivo(), user.getCurso());
+        this(user.getIdUsuario(), user.getNome(), user.getEmail(), user.getPerfil(), user.isAtivo(), user.getCurso(),
+                user.getCampus().getIdCampus(), user.getCampus().getNome());
     }
 }

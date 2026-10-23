@@ -11,6 +11,8 @@ public record AmbienteRequestDTO(
     @NotBlank String categoria,
     String exclusivoCurso,
     String observacoes,
-    List<String> recursos
+    List<String> recursos,
+    Boolean exigePreparacaoTecnica,
+    List<String> idsTecnicosResponsaveis
 ) {
 }

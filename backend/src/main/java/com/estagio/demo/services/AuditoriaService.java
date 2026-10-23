@@ -5,6 +5,7 @@ import com.estagio.demo.domain.reserva.Reserva;
 import com.estagio.demo.domain.user.Usuario;
 import com.estagio.demo.dto.auditoria.LogAuditoriaResponseDTO;
 import com.estagio.demo.repositories.LogAuditoriaRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +44,8 @@ public class AuditoriaService {
 
     @Transactional(readOnly = true)
     public List<LogAuditoriaResponseDTO> consultarHistorico() {
-        return repository.findAllByOrderByCreatedAtDesc()
+        Usuario usuario = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return repository.findByUsuarioCampusOrderByCreatedAtDesc(usuario.getCampus())
                 .stream()
                 .map(LogAuditoriaResponseDTO::new)
                 .collect(Collectors.toList());
@@ -51,16 +53,20 @@ public class AuditoriaService {
 
     @Transactional(readOnly = true)
     public List<LogAuditoriaResponseDTO> consultarPorUsuario(String idUsuario) {
+        Usuario usuario = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return repository.findByUsuarioIdUsuarioOrderByCreatedAtDesc(idUsuario)
                 .stream()
+                .filter(log -> log.getUsuario().getCampus().equals(usuario.getCampus()))
                 .map(LogAuditoriaResponseDTO::new)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<LogAuditoriaResponseDTO> consultarPorReserva(String idReserva) {
+        Usuario usuario = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return repository.findByReservaIdReservaOrderByCreatedAtDesc(idReserva)
                 .stream()
+                .filter(log -> log.getReserva() != null && log.getReserva().getAmbiente().getCampus().equals(usuario.getCampus()))
                 .map(LogAuditoriaResponseDTO::new)
                 .collect(Collectors.toList());
     }

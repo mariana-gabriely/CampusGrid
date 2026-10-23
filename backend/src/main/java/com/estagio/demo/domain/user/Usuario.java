@@ -1,5 +1,6 @@
 package com.estagio.demo.domain.user;
 
+import com.estagio.demo.domain.campus.Campus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -36,6 +37,10 @@ public class Usuario implements UserDetails {
 
     private String curso;
 
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "id_campus", nullable = false)
+    private Campus campus;
+
     public Usuario(String nome, String email, String senha, UserRole perfil) {
         this.nome = nome;
         this.email = email;
@@ -44,19 +49,22 @@ public class Usuario implements UserDetails {
         this.ativo = true;
     }
 
-    public Usuario(String nome, String email, String senha, UserRole perfil, String curso) {
+    public Usuario(String nome, String email, String senha, UserRole perfil, String curso, Campus campus) {
         this.nome = nome;
         this.email = email;
         this.senha = senha;
         this.perfil = perfil;
         this.ativo = true;
         this.curso = curso;
+        this.campus = campus;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (this.perfil == UserRole.APROVADOR) {
             return List.of(new SimpleGrantedAuthority("ROLE_APROVADOR"), new SimpleGrantedAuthority("ROLE_SOLICITANTE"));
+        } else if (this.perfil == UserRole.TECNICO) {
+            return List.of(new SimpleGrantedAuthority("ROLE_TECNICO"));
         } else {
             return List.of(new SimpleGrantedAuthority("ROLE_SOLICITANTE"));
         }

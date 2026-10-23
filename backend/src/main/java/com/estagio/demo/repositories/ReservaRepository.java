@@ -60,4 +60,12 @@ public interface ReservaRepository extends JpaRepository<Reserva, String> {
         ORDER BY r.createdAt DESC
     """)
     List<Reserva> findPendentesGerais();
+
+    @Query("""
+        SELECT COUNT(r) > 0 FROM Reserva r
+        WHERE r.ambiente.idAmbiente = :idAmbiente
+          AND (r.status = 'APROVADO' OR r.status = 'PENDENTE_CANCELAMENTO')
+          AND r.dataFim > :agora
+    """)
+    boolean existeReservaFutura(@Param("idAmbiente") String idAmbiente, @Param("agora") LocalDateTime agora);
 }

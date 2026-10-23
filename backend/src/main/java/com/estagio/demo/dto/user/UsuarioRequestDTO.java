@@ -11,5 +11,6 @@ public record UsuarioRequestDTO(
     @NotBlank @Email @Pattern(regexp = "^.+@(edu\\.)?unifil\\.br$", message = "O e-mail deve terminar com @unifil.br ou @edu.unifil.br") String email,
     @NotBlank String senha,
     @NotNull UserRole perfil,
-    String curso
+    String curso,
+    @NotBlank String campus
 ) {}
