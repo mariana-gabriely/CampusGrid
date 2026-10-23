@@ -69,7 +69,7 @@ export function ReportsPage() {
 
   const weeksOptions = generateWeeks();
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!selectedEnv || !selectedWeek) {
       toast.error("Selecione o ambiente e a semana desejada.");
       return;
@@ -81,105 +81,18 @@ export function ReportsPage() {
 
     const weekStart = new Date(weekObj.id);
     const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    const activeReservas = reservas.filter(r => {
-      const rDate = new Date(r.dataInicio);
-      return r.idAmbiente === env.idAmbiente && 
-             r.status === "APROVADO" && 
-             rDate >= weekStart && 
-             rDate < weekEnd;
-    });
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast.error("Por favor, permita pop-ups para gerar o documento.");
-      return;
+    try {
+      await reservaApi.downloadOcupacaoPdf(
+        env.idAmbiente,
+        weekStart.toISOString(),
+        weekEnd.toISOString(),
+        `ocupacao_${env.nomeSala}.pdf`,
+      );
+      setIsModalOpen(false);
+      toast.success("Relatório gerado com sucesso.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao gerar relatório");
     }
-
-    let bookingsHtml = "";
-    const days = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"];
-    
-    for (let i = 0; i < 7; i++) {
-      const currentDay = new Date(weekStart.getTime() + i * 24 * 60 * 60 * 1000);
-      const dayBookings = activeReservas.filter(r => {
-        const d = new Date(r.dataInicio);
-        return d.getDate() === currentDay.getDate() && 
-               d.getMonth() === currentDay.getMonth() && 
-               d.getFullYear() === currentDay.getFullYear();
-      }).sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
-
-      bookingsHtml += `
-        <div style="margin-bottom: 24px; page-break-inside: avoid;">
-          <h3 style="border-bottom: 2px solid #ef8f23; padding-bottom: 6px; color: #1e293b; font-size: 14px; text-transform: uppercase; font-family: sans-serif; margin-bottom: 10px;">
-            ${days[i]} - ${format(currentDay, "dd/MM/yyyy")}
-          </h3>
-          ${dayBookings.length === 0 
-            ? `<p style="color: #64748b; font-style: italic; font-size: 12px; margin: 8px 0; font-family: sans-serif;">Nenhuma reserva alocada para este dia.</p>`
-            : `
-              <table style="width: 100%; border-collapse: collapse; margin-top: 8px; font-family: sans-serif;">
-                <thead>
-                  <tr style="background: #f1f5f9; text-align: left; font-size: 11px; text-transform: uppercase; color: #475569;">
-                    <th style="padding: 8px 12px; border: 1px solid #cbd5e1;">Horário</th>
-                    <th style="padding: 8px 12px; border: 1px solid #cbd5e1;">Solicitante</th>
-                    <th style="padding: 8px 12px; border: 1px solid #cbd5e1;">Finalidade/Observações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${dayBookings.map(b => `
-                    <tr style="font-size: 12px; color: #334155;">
-                      <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 120px;">
-                        ${format(new Date(b.dataInicio), "HH:mm")} - ${format(new Date(b.dataFim), "HH:mm")}
-                      </td>
-                      <td style="padding: 8px 12px; border: 1px solid #e2e8f0; width: 200px;">
-                        ${b.nomeSolicitante || "Docente"}
-                      </td>
-                      <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">
-                        ${b.observacoes || "NPI / Aula Acadêmica"}
-                      </td>
-                    </tr>
-                  `).join("")}
-                </tbody>
-              </table>
-            `
-          }
-        </div>
-      `;
-    }
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>CampusGrid - Ocupação ${env.nomeSala}</title>
-          <style>
-            body { font-family: sans-serif; margin: 40px; color: #334155; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 3px double #cbd5e1; padding-bottom: 20px; }
-            .title { font-size: 24px; font-weight: bold; color: #ef8f23; margin: 0; }
-            .subtitle { font-size: 12px; color: #64748b; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
-            .meta { display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 12px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1 class="title">CAMPUSGRID - RELATÓRIO DE OCUPAÇÃO</h1>
-            <div class="subtitle">UniFil - Centro Universitário Filadélfia</div>
-          </div>
-          <div class="meta">
-            <div><strong>Ambiente:</strong> ${env.nomeSala} (${env.categoria})</div>
-            <div><strong>Semana:</strong> ${weekObj.label}</div>
-            <div><strong>Capacidade:</strong> ${env.capacidade} alunos</div>
-          </div>
-          ${bookingsHtml}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    setIsModalOpen(false);
   };
 
   // Demanda por dia da semana

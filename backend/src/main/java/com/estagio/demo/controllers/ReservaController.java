@@ -82,13 +82,13 @@ public class ReservaController {
     /** Obter detalhes de uma reserva específica */
     @GetMapping("/{id}")
     public ResponseEntity<ReservaResponseDTO> obterPorId(@PathVariable String id) {
-        return ResponseEntity.ok(new ReservaResponseDTO(service.buscarReservaEntidade(id)));
+        return ResponseEntity.ok(new ReservaResponseDTO(service.buscarReservaAutorizada(id)));
     }
 
     /** Baixar o anexo da reserva */
     @GetMapping("/{id}/anexo")
     public ResponseEntity<byte[]> baixarAnexo(@PathVariable String id) {
-        var reserva = service.buscarReservaEntidade(id);
+        var reserva = service.buscarReservaAutorizada(id);
         if (reserva.getAnexoConteudo() == null) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Esta reserva não possui anexo");
         }

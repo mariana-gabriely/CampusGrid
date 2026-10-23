@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Layout } from "./Layout";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Usuario } from "../types";
+import { Campus, Usuario } from "../types";
 import { Mail, Plus, Edit2, Trash2, UserPlus, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -40,6 +40,7 @@ export function UsersPage() {
   const [senha, setSenha] = useState("");
   const [perfil, setPerfil] = useState("");
   const [curso, setCurso] = useState("");
+  const [campus, setCampus] = useState<Campus>(currentUser?.campus || "SEDE");
 
   // identifica se o usuário no modal é o próprio admin logado
   const isEditingSelf = editingUserId && users.find(u => u.idUsuario === editingUserId)?.email === currentUser?.email;
@@ -67,6 +68,7 @@ export function UsersPage() {
       setEmail(user.email);
       setPerfil(user.perfil);
       setCurso(user.curso || "");
+      setCampus(user.campus);
       setSenha("");
     } else {
       setEditingUserId(null);
@@ -74,6 +76,7 @@ export function UsersPage() {
       setEmail("");
       setPerfil("");
       setCurso("");
+      setCampus(currentUser?.campus || "SEDE");
       setSenha("");
     }
     setIsModalOpen(true);
@@ -82,7 +85,7 @@ export function UsersPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!nome || !email || !perfil || (!editingUserId && !senha)) {
+    if (!nome || !email || !perfil || !campus || (!editingUserId && !senha)) {
       toast.error("preencha os campos obrigatórios");
       return;
     }
@@ -99,6 +102,7 @@ export function UsersPage() {
         email, 
         perfil: perfil,
         curso: curso.trim() || undefined,
+        ...(!editingUserId ? { campus } : {}),
         ...(senha ? { senha } : {})
       };
 
@@ -219,6 +223,7 @@ export function UsersPage() {
                   <SelectContent className="rounded-xl">
                     <SelectItem value="SOLICITANTE">Solicitante</SelectItem>
                     <SelectItem value="APROVADOR">Aprovador</SelectItem>
+                    <SelectItem value="TECNICO">Técnico de laboratório</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -227,6 +232,22 @@ export function UsersPage() {
                 <Label className="text-xs font-bold uppercase text-slate-400">Curso Vinculado</Label>
                 <Input placeholder="Ex: Engenharia de Software (opcional)" value={curso} onChange={(e) => setCurso(e.target.value)} className="h-11 rounded-xl" />
               </div>
+
+              {!editingUserId && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-slate-400">Campus <span className="text-red-500">*</span></Label>
+                  <Select value={campus} onValueChange={(value) => setCampus(value as Campus)}>
+                    <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="CAMPUS_CANADA">Campus Canadá</SelectItem>
+                      <SelectItem value="IPOLON">Ipolon</SelectItem>
+                      <SelectItem value="SEDE">Sede</SelectItem>
+                      <SelectItem value="ENGENHARIA">Engenharia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-slate-400">Use esta opção para provisionar o primeiro gestor de cada campus.</p>
+                </div>
+              )}
 
               <DialogFooter className="pt-6">
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-xl flex-1">Cancelar</Button>
@@ -258,6 +279,7 @@ export function UsersPage() {
                                 <Badge variant="secondary" className="mt-1 uppercase text-[10px]">
                                     {u.perfil}
                                 </Badge>
+                                <span className="ml-2 text-[10px] font-bold text-slate-400 uppercase">{u.nomeCampus}</span>
                             </div>
                         </div>
 

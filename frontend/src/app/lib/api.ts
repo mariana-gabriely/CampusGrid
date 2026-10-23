@@ -1,4 +1,31 @@
-const BASE_URL = "http://localhost:8080";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
+async function apiDownload(endpoint: string, filename: string) {
+  const token = localStorage.getItem("campusgrid_token");
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem("campusgrid_token");
+    localStorage.removeItem("campusgrid_user");
+    window.location.href = "/";
+    throw new Error("Sessão expirada");
+  }
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erro ${response.status}`);
+  }
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem("campusgrid_token");
@@ -104,10 +131,10 @@ export const reservaApi = {
     apiFetch(`/reservas/${id}/recusar`, { method: "PATCH", body: JSON.stringify({ motivoRecusa }) }),
   ocupacaoNoPeriodo: (inicio: string, fim: string) =>
     apiFetch(`/reservas/ocupacao?inicio=${inicio}&fim=${fim}`),
-  downloadAnexoUrl: (id: string) => {
-    const token = localStorage.getItem("campusgrid_token");
-    return `http://localhost:8080/reservas/${id}/anexo${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-  },
+  downloadAnexo: (id: string, filename = "anexo.pdf") =>
+    apiDownload(`/reservas/${id}/anexo`, filename),
+  downloadOcupacaoPdf: (idAmbiente: string, inicio: string, fim: string, filename: string) =>
+    apiDownload(`/reservas/ocupacao/pdf?idAmbiente=${encodeURIComponent(idAmbiente)}&inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`, filename),
 };
 
 export const permutaApi = {
@@ -134,4 +161,15 @@ export const auditoriaApi = {
     apiFetch(`/audit-log/usuario/${idUsuario}`),
   porReserva: (idReserva: string) =>
     apiFetch(`/audit-log/reserva/${idReserva}`),
+};
+
+export const campusApi = {
+  listar: () => apiFetch("/campuses"),
+};
+
+export const bloqueioApi = {
+  listar: () => apiFetch("/institutional-blocks"),
+  criar: (data: { idAmbiente?: string; dataInicio: string; dataFim: string; motivo: string }) =>
+    apiFetch("/institutional-blocks", { method: "POST", body: JSON.stringify(data) }),
+  cancelar: (id: string) => apiFetch(`/institutional-blocks/${id}`, { method: "DELETE" }),
 };

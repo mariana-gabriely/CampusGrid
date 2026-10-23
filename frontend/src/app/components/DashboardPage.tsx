@@ -16,13 +16,14 @@ import {
   BookOpen,
   CalendarDays,
   FileText
+  ,Ban
 } from "lucide-react";
 import { cn } from "./ui/utils";
 import { ScrollArea } from "./ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
-import { environmentApi, reservaApi } from "../lib/api";
+import { environmentApi, reservaApi, bloqueioApi } from "../lib/api";
 import { Ambiente } from "../types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
@@ -49,6 +50,7 @@ export function DashboardPage() {
   const [selectedEnvId, setSelectedEnvId] = useState<string>("");
   const [loadingEnvs, setLoadingEnvs] = useState(true);
   const [approvedRequests, setApprovedRequests] = useState<ReservaAprovada[]>([]);
+  const [institutionalBlocks, setInstitutionalBlocks] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<ReservaAprovada | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -63,6 +65,8 @@ export function DashboardPage() {
 
   useEffect(() => {
     loadOcupacao();
+    const interval = setInterval(loadOcupacao, 30000);
+    return () => clearInterval(interval);
   }, [currentDate]);
 
   useEffect(() => {
@@ -87,8 +91,12 @@ export function DashboardPage() {
     try {
       const inicio = weekStart.toISOString();
       const fim = addDays(weekStart, 7).toISOString();
-      const data = await reservaApi.ocupacaoNoPeriodo(inicio, fim);
+      const [data, blocks] = await Promise.all([
+        reservaApi.ocupacaoNoPeriodo(inicio, fim), bloqueioApi.listar()
+      ]);
       setApprovedRequests(data);
+      setInstitutionalBlocks(blocks.filter((b: any) =>
+        new Date(b.dataInicio) < new Date(fim) && new Date(b.dataFim) > new Date(inicio)));
     } catch (error) {
       console.error("Erro ao carregar ocupação", error);
     } finally {
@@ -141,27 +149,21 @@ export function DashboardPage() {
     };
   };
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     const env = environments.find(e => e.idAmbiente === selectedEnvId);
     if (!env) {
       toast.error("Selecione um ambiente para gerar o PDF");
       return;
     }
 
-    const token = localStorage.getItem("campusgrid_token");
     const inicio = weekStart.toISOString();
     const fim = addDays(weekStart, 7).toISOString();
-    
-    const downloadUrl = `http://localhost:8080/reservas/ocupacao/pdf?idAmbiente=${env.idAmbiente}&inicio=${inicio}&fim=${fim}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
-    
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `ocupacao_${env.nomeSala}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success("Download do relatório iniciado!");
+    try {
+      await reservaApi.downloadOcupacaoPdf(env.idAmbiente, inicio, fim, `ocupacao_${env.nomeSala}.pdf`);
+      toast.success("Download do relatório iniciado!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao gerar relatório");
+    }
   };
 
   const selectedEnvironment = environments.find(e => e.idAmbiente === selectedEnvId);
@@ -191,13 +193,30 @@ export function DashboardPage() {
               <Button onClick={() => navigate("/new-request")} className="rounded-md h-9 px-4 font-bold text-xs uppercase bg-primary hover:opacity-90">
                 <Plus className="w-3.5 h-3.5 mr-2" /> Nova Reserva
               </Button>
-            ) : (
+            ) : user?.perfil === "APROVADOR" ? (
               <Button onClick={handleGeneratePDF} variant="outline" className="rounded-md h-9 px-4 font-bold text-xs uppercase border-slate-200 text-slate-600 hover:bg-slate-50">
                 <FileDown className="w-3.5 h-3.5 mr-2" /> Gerar PDF
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
+
+        {institutionalBlocks.length > 0 && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 font-bold text-amber-800 mb-2">
+                <Ban className="w-4 h-4" /> Bloqueios institucionais nesta semana
+              </div>
+              <div className="grid md:grid-cols-2 gap-2">
+                {institutionalBlocks.map((block: any) => (
+                  <div key={block.idBloqueio} className="text-xs text-amber-900">
+                    <strong>{block.nomeAmbiente}:</strong> {block.motivo} — {format(new Date(block.dataInicio), "dd/MM HH:mm")} até {format(new Date(block.dataFim), "dd/MM HH:mm")}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-3 space-y-4">
@@ -448,10 +467,7 @@ export function DashboardPage() {
                 <div className="border-t border-slate-100 pt-4">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Documentação Anexa</span>
                   <Button
-                    onClick={() => {
-                      const downloadUrl = reservaApi.downloadAnexoUrl(selectedBooking.idReserva);
-                      window.open(downloadUrl, "_blank");
-                    }}
+                    onClick={() => reservaApi.downloadAnexo(selectedBooking.idReserva, selectedBooking.anexoNome)}
                     variant="outline"
                     className="w-full h-10 border-slate-200 hover:bg-slate-50 text-xs font-bold uppercase text-slate-700 flex items-center justify-center gap-2 shadow-xs"
                   >

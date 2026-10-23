@@ -300,14 +300,13 @@ export function ApprovalPanelPage() {
                         {selectedRequest.anexoNome && (
                           <section>
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Documentação Anexa</h3>
-                            <a
-                              href={reservaApi.downloadAnexoUrl(selectedRequest.id)}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => reservaApi.downloadAnexo(selectedRequest.id, selectedRequest.anexoNome)}
                               className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-700 hover:bg-emerald-100 font-medium transition-colors w-fit"
                             >
                               <Download className="w-4 h-4" /> Baixar {selectedRequest.anexoNome}
-                            </a>
+                            </button>
                           </section>
                         )}
                         <div className="p-4 bg-amber-50 border-l-4 border-amber-400 flex gap-3">

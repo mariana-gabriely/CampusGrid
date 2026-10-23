@@ -131,14 +131,13 @@ export function MyRequestsPage() {
                     )}
                     {reserva.anexoNome && (
                       <div className="mt-2">
-                        <a
-                          href={reservaApi.downloadAnexoUrl(reserva.idReserva)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => reservaApi.downloadAnexo(reserva.idReserva, reserva.anexoNome)}
                           className="inline-flex items-center gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 font-bold bg-emerald-50 border border-emerald-100 rounded px-2.5 py-1 transition-colors"
                         >
                           <Download className="w-3 h-3" /> Anexo: {reserva.anexoNome}
-                        </a>
+                        </button>
                       </div>
                     )}
                   </div>

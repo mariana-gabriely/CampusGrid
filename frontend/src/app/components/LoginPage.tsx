@@ -6,6 +6,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { AlertCircle, Eye, EyeOff, X, Loader2, KeyRound } from "lucide-react";
 import logoUnifil from "../../public/logo - unifil.png";
+import { apiFetch } from "../lib/api";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -41,18 +42,11 @@ export function LoginPage() {
     setRecovering(true);
 
     try {
-      const response = await fetch("http://localhost:8080/auth/recovery", {
+      await apiFetch("/auth/recovery", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: recoveryEmail }),
       });
-      
-      if (!response.ok) {
-        throw new Error(await response.text() || "Erro ao solicitar recuperação");
-      }
-      
-      const data = await response.json();
-      setRecoveryMessage(`Sucesso! Sua nova senha temporária é: ${data.tempPassword}. Copie e use-a para fazer login.`);
+      setRecoveryMessage("Se o e-mail estiver cadastrado, as instruções de recuperação serão enviadas.");
     } catch (err: any) {
       setRecoveryError(err.message || "E-mail não encontrado ou erro no servidor.");
     } finally {

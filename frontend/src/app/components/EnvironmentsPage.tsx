@@ -4,8 +4,8 @@ import { Badge } from "./ui/badge";
 import { Users, Plus, Edit2, Info, Loader2, X, Trash2, ClipboardType, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
-import { environmentApi } from "../lib/api";
-import { Ambiente } from "../types";
+import { environmentApi, userApi } from "../lib/api";
+import { Ambiente, Usuario } from "../types";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,7 @@ import { toast } from "sonner";
 
 export function EnvironmentsPage() {
   const [environments, setEnvironments] = useState<Ambiente[]>([]);
+  const [technicians, setTechnicians] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [apenasAtivos, setApenasAtivos] = useState(true);
   
@@ -55,6 +56,8 @@ export function EnvironmentsPage() {
     exclusivoCurso: "",
     observacoes: "",
     recursos: [] as string[],
+    exigePreparacaoTecnica: false,
+    idsTecnicosResponsaveis: [] as string[],
   });
 
   const [recursoInput, setRecursoInput] = useState("");
@@ -66,8 +69,11 @@ export function EnvironmentsPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const data = await environmentApi.listarTodos(apenasAtivos);
+      const [data, users] = await Promise.all([
+        environmentApi.listarTodos(apenasAtivos), userApi.listarTodos(true)
+      ]);
       setEnvironments(data);
+      setTechnicians(users.filter((u: Usuario) => u.perfil === "TECNICO"));
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
       toast.error("Erro ao carregar dados do servidor.");
@@ -85,6 +91,8 @@ export function EnvironmentsPage() {
       exclusivoCurso: "",
       observacoes: "",
       recursos: [],
+      exigePreparacaoTecnica: false,
+      idsTecnicosResponsaveis: [],
     });
     setIsEnvModalOpen(true);
   };
@@ -98,6 +106,8 @@ export function EnvironmentsPage() {
       exclusivoCurso: env.exclusivoCurso || "",
       observacoes: env.observacoes || "",
       recursos: env.recursos || [],
+      exigePreparacaoTecnica: env.exigePreparacaoTecnica || false,
+      idsTecnicosResponsaveis: env.idsTecnicosResponsaveis || [],
     });
     setIsEnvModalOpen(true);
   };
@@ -240,6 +250,7 @@ export function EnvironmentsPage() {
                       </div>
                       <CardContent className="p-6 flex-1 flex flex-col">
                           <h2 className="text-lg font-bold text-slate-900 mb-1">{env.nomeSala}</h2>
+                          <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">{env.nomeCampus}</p>
                           
                           <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-4 uppercase">
                               <Users className="w-3.5 h-3.5" />
@@ -339,6 +350,28 @@ export function EnvironmentsPage() {
                 placeholder="Ex: Engenharia de Software"
               />
             </div>
+
+            {formData.categoria.toLocaleUpperCase("pt-BR").includes("LABORAT") && (
+              <div className="rounded-lg border p-4 space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" checked={formData.exigePreparacaoTecnica}
+                    onChange={e => setFormData({ ...formData, exigePreparacaoTecnica: e.target.checked,
+                      idsTecnicosResponsaveis: e.target.checked ? formData.idsTecnicosResponsaveis : [] })}/>
+                  Exige preparação de um técnico
+                </label>
+                {formData.exigePreparacaoTecnica && <div className="space-y-2">
+                  <Label>Técnicos responsáveis</Label>
+                  {technicians.length === 0 ? <p className="text-xs text-amber-600">Cadastre um usuário com perfil Técnico.</p> :
+                    technicians.map(t => <label key={t.idUsuario} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={formData.idsTecnicosResponsaveis.includes(t.idUsuario)}
+                        onChange={e => setFormData({ ...formData, idsTecnicosResponsaveis: e.target.checked
+                          ? [...formData.idsTecnicosResponsaveis, t.idUsuario]
+                          : formData.idsTecnicosResponsaveis.filter(id => id !== t.idUsuario) })}/>
+                      {t.nome}
+                    </label>)}
+                </div>}
+              </div>
+            )}
 
             <div className="pt-4">
                 <Button 

@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Bell,
   ArrowLeftRight,
+  Ban,
 } from "lucide-react";
 import { cn } from "./ui/utils";
 import {
@@ -90,7 +91,7 @@ export function Layout({ children }: LayoutProps) {
               list.push({ message: `Proposta de permuta recebida de ${p.nomeSolicitante} para a sala ${p.ambienteDestinatarioNome}.` });
             }
           });
-        } else {
+        } else if (user.perfil === "APROVADOR") {
           // Aprovador
           const pendentes = await reservaApi.listarPendentes();
           if (pendentes.length > 0) {
@@ -124,19 +125,17 @@ export function Layout({ children }: LayoutProps) {
     setNotifications([]);
   };
 
-  if (!user) {
-    navigate("/");
-    return null;
-  }
+  if (!user) return null;
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", roles: ["SOLICITANTE", "APROVADOR"] },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", roles: ["SOLICITANTE", "APROVADOR", "TECNICO"] },
     { icon: FileText, label: "Nova Solicitação", path: "/new-request", roles: ["SOLICITANTE"] },
     { icon: ClipboardList, label: "Minhas Reservas", path: "/my-requests", roles: ["SOLICITANTE"] },
     { icon: CheckSquare, label: "Painel de Aprovação", path: "/approval-panel", roles: ["APROVADOR"] },
     { icon: History, label: "Auditoria", path: "/audit-log", roles: ["APROVADOR"] },
     { icon: Users, label: "Usuários", path: "/users", roles: ["APROVADOR"] },
     { icon: Building2, label: "Ambientes", path: "/environments", roles: ["APROVADOR"] },
+    { icon: Ban, label: "Bloqueios", path: "/institutional-blocks", roles: ["APROVADOR"] },
     { icon: FileBarChart, label: "Relatórios", path: "/reports", roles: ["APROVADOR"] },
   ];
 
@@ -240,7 +239,7 @@ export function Layout({ children }: LayoutProps) {
                             <button className="flex items-center gap-2 p-1 pl-2 pr-1 rounded border border-slate-200 hover:bg-slate-50 transition-colors outline-none">
                                 <div className="text-right hidden sm:block">
                                     <p className="text-xs font-bold text-slate-900 leading-none">{user.nome}</p>
-                                    <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">{user.perfil}</p>
+                                    <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">{user.perfil} · {user.nomeCampus}</p>
                                 </div>
                                 <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500">
                                     <UserIcon className="w-4 h-4" />
@@ -252,6 +251,7 @@ export function Layout({ children }: LayoutProps) {
                             <DropdownMenuLabel className="px-4 py-3">
                                 <p className="text-sm font-bold text-slate-900">{user.nome}</p>
                                 <p className="text-xs text-slate-500">{user.email}</p>
+                                <p className="text-xs text-slate-400 mt-1">{user.nomeCampus}</p>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="px-4 py-2 cursor-pointer">
