@@ -1,1 +1,26 @@
+# Java / Maven
+backend/target/
+*.class
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+
+# Configuração local e segredos
+.env
+.env.*
+!.env.example
+frontend/.env.local
+
+# IDE / sistema operacional
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Documentação local não versionada
 /documentacao
