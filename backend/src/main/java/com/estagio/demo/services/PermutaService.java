@@ -9,6 +9,7 @@ import com.estagio.demo.domain.user.UserRole;
 import com.estagio.demo.dto.reserva.*;
 import com.estagio.demo.repositories.PermutaRepository;
 import com.estagio.demo.repositories.ReservaRepository;
+import com.estagio.demo.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,6 +36,9 @@ public class PermutaService {
     @Autowired
     private AuditoriaService auditoriaService;
 
+    @Autowired private EmailService emailService;
+    @Autowired private UsuarioRepository usuarioRepository;
+
     private Usuario getUsuarioLogado() {
         return (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
@@ -48,6 +52,11 @@ public class PermutaService {
 
         Reserva destinatario = reservaRepository.findById(data.idReservaDestinatario())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva destinatária não encontrada"));
+
+        if (!solicitante.getAmbiente().getCampus().equals(logado.getCampus())
+                || !destinatario.getAmbiente().getCampus().equals(logado.getCampus())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Permutas só podem ocorrer dentro do mesmo campus");
+        }
 
         if (!solicitante.getSolicitante().getIdUsuario().equals(logado.getIdUsuario())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode propor permuta a partir de uma reserva sua");
@@ -70,6 +79,9 @@ public class PermutaService {
                 solicitante,
                 "Proposta de permuta com a reserva " + destinatario.getIdReserva() + " de " + destinatario.getSolicitante().getNome()
         );
+        emailService.enviarNotificacao(destinatario.getSolicitante().getEmail(),
+                "Nova proposta de troca - CampusGrid",
+                logado.getNome() + " enviou uma proposta de troca de reservas.");
 
         return new PermutaResponseDTO(permuta);
     }
@@ -79,6 +91,10 @@ public class PermutaService {
         Usuario logado = getUsuarioLogado();
         Permuta permuta = permutaRepository.findById(idPermuta)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Permuta não encontrada"));
+
+        if (!permuta.getReservaSolicitante().getAmbiente().getCampus().equals(logado.getCampus())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Permuta pertence a outro campus");
+        }
 
         if (!permuta.getReservaDestinatario().getSolicitante().getIdUsuario().equals(logado.getIdUsuario())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o destinatário da permuta pode respondê-la");
@@ -96,6 +112,11 @@ public class PermutaService {
                     permuta.getReservaDestinatario(),
                     "Permuta aceita pelo destinatário. Enviada para avaliação do Gestor."
             );
+            usuarioRepository.findByCampusAndPerfilAndAtivoTrueOrderByNome(
+                    logado.getCampus(), UserRole.APROVADOR).forEach(gestor ->
+                    emailService.enviarNotificacao(gestor.getEmail(),
+                            "Troca aguardando decisão - CampusGrid",
+                            "Uma troca aceita pelos docentes aguarda sua decisão."));
         } else {
             if (data.motivoRecusa() == null || data.motivoRecusa().isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Motivo da recusa é obrigatório");
@@ -108,6 +129,9 @@ public class PermutaService {
                     permuta.getReservaDestinatario(),
                     "Permuta recusada pelo destinatário. Motivo: " + data.motivoRecusa()
             );
+            emailService.enviarNotificacao(permuta.getUsuarioSolicitante().getEmail(),
+                    "Proposta de troca recusada - CampusGrid",
+                    "A proposta foi recusada. Motivo: " + data.motivoRecusa());
         }
 
         permutaRepository.save(permuta);
@@ -123,6 +147,10 @@ public class PermutaService {
 
         Permuta permuta = permutaRepository.findById(idPermuta)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Permuta não encontrada"));
+
+        if (!permuta.getReservaSolicitante().getAmbiente().getCampus().equals(logado.getCampus())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Permuta pertence a outro campus");
+        }
 
         if (!"PENDENTE_GESTOR".equals(permuta.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esta permuta não está pendente de avaliação do gestor");
@@ -180,6 +208,11 @@ public class PermutaService {
         }
 
         permutaRepository.save(permuta);
+        String resultado = "APROVADA_GESTOR".equals(permuta.getStatus()) ? "aprovada" : "recusada";
+        emailService.enviarNotificacao(permuta.getUsuarioSolicitante().getEmail(),
+                "Resultado da troca - CampusGrid", "A troca foi " + resultado + " pelo gestor.");
+        emailService.enviarNotificacao(permuta.getUsuarioDestinatario().getEmail(),
+                "Resultado da troca - CampusGrid", "A troca foi " + resultado + " pelo gestor.");
         return new PermutaResponseDTO(permuta);
     }
 
@@ -226,7 +259,9 @@ public class PermutaService {
 
     @Transactional(readOnly = true)
     public List<PermutaResponseDTO> listarPendentesGestor() {
+        Usuario logado = getUsuarioLogado();
         return permutaRepository.findByStatus("PENDENTE_GESTOR")
-                .stream().map(PermutaResponseDTO::new).collect(Collectors.toList());
+                .stream().filter(p -> p.getReservaSolicitante().getAmbiente().getCampus().equals(logado.getCampus()))
+                .map(PermutaResponseDTO::new).collect(Collectors.toList());
     }
 }
